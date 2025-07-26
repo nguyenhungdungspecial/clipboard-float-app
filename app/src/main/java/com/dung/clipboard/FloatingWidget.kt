@@ -6,8 +6,6 @@ import android.graphics.PixelFormat
 import android.os.Build
 import android.view.*
 import android.widget.ImageView
-import android.view.View.OnTouchListener
-import android.view.WindowManager
 
 class FloatingWidget(private val context: Context) {
     private var windowManager: WindowManager? = null
@@ -47,8 +45,9 @@ class FloatingWidget(private val context: Context) {
                 context.startActivity(intent)
                 isActivityOpen = true
             } else {
-                val closeIntent = Intent("com.dung.clipboard.CLOSE_ACTIVITY")
-                context.sendBroadcast(closeIntent)
+                // Gửi broadcast để MainActivity tự đóng
+                val intent = Intent("com.dung.clipboard.CLOSE_ACTIVITY")
+                context.sendBroadcast(intent)
                 isActivityOpen = false
             }
         }
@@ -56,7 +55,7 @@ class FloatingWidget(private val context: Context) {
         windowManager?.addView(floatingView, layoutParams)
     }
 
-    inner class FloatingTouchListener(private val layoutParams: WindowManager.LayoutParams) : OnTouchListener {
+    inner class FloatingTouchListener(private val layoutParams: WindowManager.LayoutParams) : View.OnTouchListener {
         private var initialX = 0
         private var initialY = 0
         private var initialTouchX = 0f
