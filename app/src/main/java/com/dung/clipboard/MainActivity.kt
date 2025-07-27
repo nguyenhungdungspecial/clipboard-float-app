@@ -30,7 +30,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         // Layout ngang có 2 cột và đường phân cách giữa
-        val layout = LinearLayout(this).apply {
+        var layout = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             weightSum = 2f
         }
