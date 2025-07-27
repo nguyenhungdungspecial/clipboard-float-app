@@ -15,6 +15,7 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        // Theo dõi clipboard hệ thống
         val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
         clipboard.addPrimaryClipChangedListener {
             val text = clipboard.primaryClip?.getItemAt(0)?.text?.toString()
@@ -24,6 +25,7 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+        // Tạo layout ngang 2 cột
         val layout = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             weightSum = 2f
@@ -32,8 +34,10 @@ class MainActivity : AppCompatActivity() {
         val copiedLayout = createColumn("Đã copy", ClipboardDataManager.getCopiedList(), false)
         val pinnedLayout = createColumn("Đã ghim", ClipboardDataManager.getPinnedList(), true)
 
+        // Thêm cột trái
         layout.addView(copiedLayout)
 
+        // Đường kẻ chia đôi màn hình
         val divider = View(this).apply {
             layoutParams = LinearLayout.LayoutParams(2, LinearLayout.LayoutParams.MATCH_PARENT).apply {
                 setMargins(4, 0, 4, 0)
@@ -42,6 +46,8 @@ class MainActivity : AppCompatActivity() {
         }
 
         layout.addView(divider)
+
+        // Thêm cột phải
         layout.addView(pinnedLayout)
 
         setContentView(layout)
@@ -59,11 +65,11 @@ class MainActivity : AppCompatActivity() {
             setBackgroundColor(if (isPinned) 0xFFB2DFDB.toInt() else 0xFFB3E5FC.toInt())
             setPadding(16, 16, 16, 16)
         }
+
         column.addView(titleView)
 
-        list.forEach { text ->
-            val item = createTextItem(text, isPinned)
-            column.addView(item)
+        list.forEach { itemText ->
+            column.addView(createTextItem(itemText, isPinned))
         }
 
         return column
@@ -75,8 +81,8 @@ class MainActivity : AppCompatActivity() {
             setPadding(8, 8, 8, 8)
         }
 
-        val textViewItem = TextView(this).apply {
-            text = text
+        val textView = TextView(this).apply {
+            this.text = text
             layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
             setOnClickListener {
                 val result = Intent().apply {
@@ -90,9 +96,7 @@ class MainActivity : AppCompatActivity() {
         val editBtn = Button(this).apply {
             text = "Sửa"
             setOnClickListener {
-                val editText = EditText(this@MainActivity).apply {
-                    setText(text)
-                }
+                val editText = EditText(this@MainActivity).apply { setText(text) }
                 AlertDialog.Builder(this@MainActivity)
                     .setTitle("Sửa nội dung")
                     .setView(editText)
@@ -125,7 +129,7 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        itemLayout.addView(textViewItem)
+        itemLayout.addView(textView)
         itemLayout.addView(editBtn)
         itemLayout.addView(pinBtn)
         itemLayout.addView(deleteBtn)
