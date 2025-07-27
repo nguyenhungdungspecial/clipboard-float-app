@@ -15,7 +15,6 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Theo dõi clipboard hệ thống
         val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
         clipboard.addPrimaryClipChangedListener {
             val text = clipboard.primaryClip?.getItemAt(0)?.text?.toString()
@@ -25,8 +24,7 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        // Layout ngang có 2 cột và đường phân cách giữa
-        var layout = LinearLayout(this).apply {
+        val layout = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             weightSum = 2f
         }
@@ -36,7 +34,6 @@ class MainActivity : AppCompatActivity() {
 
         layout.addView(copiedLayout)
 
-        // Đường kẻ chia đôi màn hình theo chiều dọc
         val divider = View(this).apply {
             layoutParams = LinearLayout.LayoutParams(2, LinearLayout.LayoutParams.MATCH_PARENT).apply {
                 setMargins(4, 0, 4, 0)
@@ -68,6 +65,7 @@ class MainActivity : AppCompatActivity() {
             val item = createTextItem(text, isPinned)
             column.addView(item)
         }
+
         return column
     }
 
@@ -77,8 +75,8 @@ class MainActivity : AppCompatActivity() {
             setPadding(8, 8, 8, 8)
         }
 
-        val textView = TextView(this).apply {
-            this.text = text
+        val textViewItem = TextView(this).apply {
+            text = text
             layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
             setOnClickListener {
                 val result = Intent().apply {
@@ -92,7 +90,9 @@ class MainActivity : AppCompatActivity() {
         val editBtn = Button(this).apply {
             text = "Sửa"
             setOnClickListener {
-                var editText = EditText(this@MainActivity).apply { setText(text) }
+                val editText = EditText(this@MainActivity).apply {
+                    setText(text)
+                }
                 AlertDialog.Builder(this@MainActivity)
                     .setTitle("Sửa nội dung")
                     .setView(editText)
@@ -125,10 +125,11 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        itemLayout.addView(textView)
+        itemLayout.addView(textViewItem)
         itemLayout.addView(editBtn)
         itemLayout.addView(pinBtn)
         itemLayout.addView(deleteBtn)
+
         return itemLayout
     }
 }
