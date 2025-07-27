@@ -1,75 +1,92 @@
 package com.dung.clipboard
 
 import android.app.Activity
+import android.app.AlertDialog
+import android.content.ClipboardManager
+import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
+import android.provider.Settings
 import android.widget.*
-import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
-import android.view.Gravity
 
 class MainActivity : AppCompatActivity() {
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        val rootLayout = LinearLayout(this).apply {
+        // Kiểm tra quyền overlay
+        if (!Settings.canDrawOverlays(this)) {
+            val intent = Intent(
+                Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                Uri.parse("package:$packageName")
+            )
+            startActivityForResult(intent, 0)
+        } else {
+            FloatingWidget(this).show()
+        }
+
+        val clipboard = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
+        clipboard.addPrimaryClipChangedListener {
+            val text = clipboard.primaryClip?.getItemAt(0)?.text?.toString()
+            if (!text.isNullOrBlank()) {
+                ClipboardDataManager.addCopy(text)
+                recreate()
+            }
+        }
+
+        val layout = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             weightSum = 2f
-            setPadding(16, 16, 16, 16)
         }
 
-        // Cột trái - Đã copy
-        val leftColumn = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.MATCH_PARENT, 1f)
+        val copiedLayout = createColumn("Đã copy", ClipboardDataManager.getCopiedList(), false)
+        val divider = View(this).apply {
+            layoutParams = LinearLayout.LayoutParams(2, LinearLayout.LayoutParams.MATCH_PARENT)
+            setBackgroundColor(0xFFAAAAAA.toInt()) // Đường kẻ dọc
         }
+        val pinnedLayout = createColumn("Đã ghim", ClipboardDataManager.getPinnedList(), true)
 
-        val copiedTitle = TextView(this).apply {
-            text = "Đã copy"
-            textSize = 20f
-            gravity = Gravity.CENTER
-            setBackgroundColor(0xFFB3E5FC.toInt()) // Xanh nhạt
-            setPadding(8, 16, 8, 16)
-        }
-        leftColumn.addView(copiedTitle)
+        layout.addView(copiedLayout)
+        layout.addView(divider)
+        layout.addView(pinnedLayout)
 
-        ClipboardDataManager.getCopiedList().forEach { text ->
-            val item = createItemView(text, isPinned = false)
-            leftColumn.addView(item)
-        }
-
-        // Cột phải - Đã ghim
-        val rightColumn = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.MATCH_PARENT, 1f)
-        }
-
-        val pinnedTitle = TextView(this).apply {
-            text = "Đã ghim"
-            textSize = 20f
-            gravity = Gravity.CENTER
-            setBackgroundColor(0xFFB2DFDB.toInt()) // Xanh ngọc
-            setPadding(8, 16, 8, 16)
-        }
-        rightColumn.addView(pinnedTitle)
-
-        ClipboardDataManager.getPinnedList().forEach { text ->
-            val item = createItemView(text, isPinned = true)
-            rightColumn.addView(item)
-        }
-
-        rootLayout.addView(leftColumn)
-        rootLayout.addView(rightColumn)
-
-        setContentView(rootLayout)
+        setContentView(layout)
     }
 
-    private fun createItemView(text: String, isPinned: Boolean): TextView {
-        return TextView(this).apply {
-            this.text = text
-            textSize = 16f
+    private fun createColumn(title: String, list: List<String>, isPinned: Boolean): LinearLayout {
+        val column = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.MATCH_PARENT, 1f)
+        }
+
+        val titleView = TextView(this).apply {
+            text = title
+            textSize = 18f
+            setBackgroundColor(if (isPinned) 0xFFB2DFDB.toInt() else 0xFFB3E5FC.toInt())
             setPadding(16, 16, 16, 16)
-            setBackgroundResource(android.R.drawable.editbox_background)
+        }
+
+        column.addView(titleView)
+
+        list.forEach { text ->
+            val item = createTextItem(text, isPinned)
+            column.addView(item)
+        }
+
+        return column
+    }
+
+    private fun createTextItem(text: String, isPinned: Boolean): LinearLayout {
+        val itemLayout = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            setPadding(8, 8, 8, 8)
+        }
+
+        val textView = TextView(this).apply {
+            this.text = text
+            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
             setOnClickListener {
                 val result = Intent().apply {
                     putExtra("pasted_text", text)
@@ -77,74 +94,49 @@ class MainActivity : AppCompatActivity() {
                 setResult(Activity.RESULT_OK, result)
                 finish()
             }
-            setOnLongClickListener {
-                showOptionsDialog(text, isPinned)
-                true
+        }
+
+        val editBtn = Button(this).apply {
+            text = "Sửa"
+            setOnClickListener {
+                val editText = EditText(this@MainActivity).apply { setText(text) }
+                AlertDialog.Builder(this@MainActivity)
+                    .setTitle("Sửa nội dung")
+                    .setView(editText)
+                    .setPositiveButton("Lưu") { _, _ ->
+                        val newText = editText.text.toString()
+                        if (newText.isNotBlank()) {
+                            ClipboardDataManager.editText(text, newText, isPinned)
+                            recreate()
+                        }
+                    }
+                    .setNegativeButton("Hủy", null)
+                    .show()
             }
         }
-    }
 
-    private fun showOptionsDialog(text: String, isPinned: Boolean) {
-        val builder = AlertDialog.Builder(this)
-        val options = mutableListOf<String>()
-
-        if (isPinned) {
-            options.add("Bỏ ghim")
-        } else {
-            options.add("Ghim")
-        }
-
-        options.add("Chỉnh sửa")
-        options.add("Xoá")
-
-        builder.setTitle("Chọn thao tác")
-        builder.setItems(options.toTypedArray()) { dialog, which ->
-            when (options[which]) {
-                "Ghim" -> {
-                    ClipboardDataManager.pin(text)
-                    Toast.makeText(this, "Đã ghim", Toast.LENGTH_SHORT).show()
-                    recreate()
-                }
-                "Bỏ ghim" -> {
-                    ClipboardDataManager.unpin(text)
-                    Toast.makeText(this, "Đã bỏ ghim", Toast.LENGTH_SHORT).show()
-                    recreate()
-                }
-                "Chỉnh sửa" -> {
-                    showEditDialog(text, isPinned)
-                }
-                "Xoá" -> {
-                    if (isPinned) ClipboardDataManager.unpin(text)
-                    else ClipboardDataManager.removeCopied(text)
-                    Toast.makeText(this, "Đã xoá", Toast.LENGTH_SHORT).show()
-                    recreate()
-                }
-            }
-        }
-        builder.show()
-    }
-
-    private fun showEditDialog(oldText: String, isPinned: Boolean) {
-        val input = EditText(this).apply {
-            setText(oldText)
-        }
-
-        AlertDialog.Builder(this)
-            .setTitle("Chỉnh sửa nội dung")
-            .setView(input)
-            .setPositiveButton("Lưu") { _, _ ->
-                val newText = input.text.toString()
-                if (isPinned) {
-                    ClipboardDataManager.unpin(oldText)
-                    ClipboardDataManager.pin(newText)
-                } else {
-                    ClipboardDataManager.removeCopied(oldText)
-                    ClipboardDataManager.addCopy(newText)
-                }
-                Toast.makeText(this, "Đã cập nhật", Toast.LENGTH_SHORT).show()
+        val pinBtn = Button(this).apply {
+            text = if (isPinned) "Bỏ ghim" else "Ghim"
+            setOnClickListener {
+                if (isPinned) ClipboardDataManager.unpinText(text)
+                else ClipboardDataManager.pinText(text)
                 recreate()
             }
-            .setNegativeButton("Huỷ", null)
-            .show()
+        }
+
+        val deleteBtn = Button(this).apply {
+            text = "Xoá"
+            setOnClickListener {
+                ClipboardDataManager.removeText(text, isPinned)
+                recreate()
+            }
+        }
+
+        itemLayout.addView(textView)
+        itemLayout.addView(editBtn)
+        itemLayout.addView(pinBtn)
+        itemLayout.addView(deleteBtn)
+
+        return itemLayout
     }
 }

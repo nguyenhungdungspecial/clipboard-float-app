@@ -40,14 +40,14 @@ class FloatingWidget(private val context: Context) {
 
         floatingView?.setOnClickListener {
             if (!isActivityOpen) {
-                val intent = Intent(context, MainActivity::class.java)
-                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                val intent = Intent(context, MainActivity::class.java).apply {
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
                 context.startActivity(intent)
                 isActivityOpen = true
             } else {
-                // Gửi broadcast để MainActivity tự đóng
-                val intent = Intent("com.dung.clipboard.CLOSE_ACTIVITY")
-                context.sendBroadcast(intent)
+                val closeIntent = Intent("com.dung.clipboard.CLOSE_ACTIVITY")
+                context.sendBroadcast(closeIntent)
                 isActivityOpen = false
             }
         }
@@ -55,7 +55,8 @@ class FloatingWidget(private val context: Context) {
         windowManager?.addView(floatingView, layoutParams)
     }
 
-    inner class FloatingTouchListener(private val layoutParams: WindowManager.LayoutParams) : View.OnTouchListener {
+    inner class FloatingTouchListener(private val layoutParams: WindowManager.LayoutParams) :
+        View.OnTouchListener {
         private var initialX = 0
         private var initialY = 0
         private var initialTouchX = 0f
@@ -70,8 +71,9 @@ class FloatingWidget(private val context: Context) {
                     initialTouchY = event.rawY
                     return true
                 }
+
                 MotionEvent.ACTION_MOVE -> {
-                    layoutParams.x = initialX - (event.rawX - initialTouchX).toInt()
+                    layoutParams.x = initialX + (event.rawX - initialTouchX).toInt()
                     layoutParams.y = initialY + (event.rawY - initialTouchY).toInt()
                     windowManager?.updateViewLayout(view, layoutParams)
                     return true
