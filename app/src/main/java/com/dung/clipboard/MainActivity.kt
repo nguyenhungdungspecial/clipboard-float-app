@@ -1,21 +1,18 @@
 package com.dung.clipboard
 
 import android.app.Activity
-import android.app.AlertDialog
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.graphics.Color
 import android.os.Bundle
-import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
 import android.widget.*
-
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 
 class MainActivity : AppCompatActivity() {
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -30,7 +27,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         // Layout ngang có 2 cột và đường phân cách giữa
-        var layout = LinearLayout(this).apply {
+        val layout = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             weightSum = 2f
         }
@@ -40,13 +37,15 @@ class MainActivity : AppCompatActivity() {
 
         layout.addView(copiedLayout)
 
-        // Thêm đường kẻ chia giữa
+        // Đường kẻ chia đôi màn hình theo chiều dọc
         val divider = View(this).apply {
-            layoutParams = LinearLayout.LayoutParams(4, LinearLayout.LayoutParams.MATCH_PARENT)
+            layoutParams = LinearLayout.LayoutParams(2, LinearLayout.LayoutParams.MATCH_PARENT).apply {
+                setMargins(4, 0, 4, 0)
+            }
             setBackgroundColor(Color.DKGRAY)
         }
-        layout.addView(divider)
 
+        layout.addView(divider)
         layout.addView(pinnedLayout)
 
         setContentView(layout)
@@ -115,8 +114,7 @@ class MainActivity : AppCompatActivity() {
         val pinBtn = Button(this).apply {
             text = if (isPinned) "Bỏ ghim" else "Ghim"
             setOnClickListener {
-                if (isPinned) ClipboardDataManager.unpinText(text)
-                else ClipboardDataManager.pinText(text)
+                if (isPinned) ClipboardDataManager.unpinText(text) else ClipboardDataManager.pinText(text)
                 recreate()
             }
         }
