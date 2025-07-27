@@ -5,10 +5,13 @@ import android.app.AlertDialog
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
-import android.net.Uri
+import android.graphics.Color
 import android.os.Bundle
-import android.provider.Settings
+import android.view.Gravity
+import android.view.View
+import android.view.ViewGroup
 import android.widget.*
+
 import androidx.appcompat.app.AppCompatActivity
 
 class MainActivity : AppCompatActivity() {
@@ -16,17 +19,7 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Kiểm tra quyền overlay
-        if (!Settings.canDrawOverlays(this)) {
-            val intent = Intent(
-                Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-                Uri.parse("package:$packageName")
-            )
-            startActivityForResult(intent, 0)
-        } else {
-            FloatingWidget(this).show()
-        }
-
+        // Theo dõi clipboard hệ thống
         val clipboard = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
         clipboard.addPrimaryClipChangedListener {
             val text = clipboard.primaryClip?.getItemAt(0)?.text?.toString()
@@ -36,20 +29,24 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+        // Layout ngang có 2 cột và đường phân cách giữa
         val layout = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             weightSum = 2f
         }
 
         val copiedLayout = createColumn("Đã copy", ClipboardDataManager.getCopiedList(), false)
-        val divider = View(this).apply {
-            layoutParams = LinearLayout.LayoutParams(2, LinearLayout.LayoutParams.MATCH_PARENT)
-            setBackgroundColor(0xFFAAAAAA.toInt()) // Đường kẻ dọc
-        }
         val pinnedLayout = createColumn("Đã ghim", ClipboardDataManager.getPinnedList(), true)
 
         layout.addView(copiedLayout)
+
+        // Thêm đường kẻ chia giữa
+        val divider = View(this).apply {
+            layoutParams = LinearLayout.LayoutParams(4, LinearLayout.LayoutParams.MATCH_PARENT)
+            setBackgroundColor(Color.DKGRAY)
+        }
         layout.addView(divider)
+
         layout.addView(pinnedLayout)
 
         setContentView(layout)
