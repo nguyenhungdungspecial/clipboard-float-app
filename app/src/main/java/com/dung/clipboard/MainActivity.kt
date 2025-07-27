@@ -27,7 +27,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         // Layout ngang có 2 cột và đường phân cách giữa
-        val layout = LinearLayout(this).apply {
+        var layout = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             weightSum = 2f
         }
@@ -114,7 +114,8 @@ class MainActivity : AppCompatActivity() {
         val pinBtn = Button(this).apply {
             text = if (isPinned) "Bỏ ghim" else "Ghim"
             setOnClickListener {
-                if (isPinned) ClipboardDataManager.unpinText(text) else ClipboardDataManager.pinText(text)
+                if (isPinned) ClipboardDataManager.unpinText(text)
+                else ClipboardDataManager.pinText(text)
                 recreate()
             }
         }
