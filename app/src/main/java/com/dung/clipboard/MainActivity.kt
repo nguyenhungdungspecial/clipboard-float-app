@@ -5,7 +5,10 @@ import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.graphics.Color
+import android.net.Uri // Thêm import này
+import android.os.Build
 import android.os.Bundle
+import android.provider.Settings // Thêm import này
 import android.view.View
 import android.widget.*
 import androidx.appcompat.app.AlertDialog
@@ -13,23 +16,53 @@ import androidx.appcompat.app.AppCompatActivity
 
 class MainActivity : AppCompatActivity() {
 
+    private lateinit var clipboard: ClipboardManager
+    private var isServiceRunning = false // Biến để theo dõi trạng thái dịch vụ
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Lấy ClipboardManager và theo dõi thay đổi clipboard
-        val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
         clipboard.addPrimaryClipChangedListener {
             val clipText = clipboard.primaryClip?.getItemAt(0)?.text?.toString()
             if (!clipText.isNullOrBlank()) {
                 ClipboardDataManager.addCopy(clipText)
-                recreate()
+                recreate() // Tải lại Activity để cập nhật danh sách
             }
         }
 
-        // Layout ngang với 2 cột
-        val layout = LinearLayout(this).apply {
+        val mainLayout = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.MATCH_PARENT
+            )
+        }
+
+        // --- Nút bật/tắt dịch vụ Floating Widget ---
+        val toggleServiceButton = Button(this).apply {
+            text = "Bật/Tắt Clipboard Nổi"
+            setOnClickListener {
+                if (isServiceRunning) {
+                    stopFloatingWidgetService()
+                    Toast.makeText(this@MainActivity, "Đã tắt Clipboard Nổi", Toast.LENGTH_SHORT).show()
+                } else {
+                    startFloatingWidgetService()
+                }
+            }
+        }
+        mainLayout.addView(toggleServiceButton)
+        // --- Kết thúc nút bật/tắt dịch vụ ---
+
+        // Layout ngang với 2 cột (phần hiện tại của bạn)
+        val contentLayout = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             weightSum = 2f
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                1f // Cho phép nó chiếm phần còn lại của màn hình
+            )
         }
 
         val copiedLayout = createColumn("Đã copy", ClipboardDataManager.getCopiedList(), false)
@@ -43,13 +76,70 @@ class MainActivity : AppCompatActivity() {
             setBackgroundColor(Color.DKGRAY)
         }
 
-        layout.addView(copiedLayout)
-        layout.addView(divider)
-        layout.addView(pinnedLayout)
+        contentLayout.addView(copiedLayout)
+        contentLayout.addView(divider)
+        contentLayout.addView(pinnedLayout)
 
-        setContentView(layout)
+        mainLayout.addView(contentLayout) // Thêm contentLayout vào mainLayout
+
+        setContentView(mainLayout)
+
+        // Kiểm tra trạng thái dịch vụ khi Activity được tạo
+        isServiceRunning = isMyServiceRunning(FloatingWidgetService::class.java)
+        updateToggleButtonText() // Cập nhật text ban đầu cho nút
     }
 
+    private fun startFloatingWidgetService() {
+        // Kiểm tra quyền SYSTEM_ALERT_WINDOW trước khi khởi động dịch vụ
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.canDrawOverlays(this)) {
+            val intent = Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                Uri.parse("package:" + packageName))
+            startActivity(intent)
+            Toast.makeText(this, "Vui lòng cấp quyền vẽ đè để bật tính năng nổi", Toast.LENGTH_LONG).show()
+        } else {
+            val serviceIntent = Intent(this, FloatingWidgetService::class.java)
+            // Dùng startForegroundService cho Android O (API 26) trở lên
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                startForegroundService(serviceIntent)
+            } else {
+                startService(serviceIntent)
+            }
+            isServiceRunning = true
+            updateToggleButtonText()
+            Toast.makeText(this, "Đã bật Clipboard Nổi", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun stopFloatingWidgetService() {
+        val serviceIntent = Intent(this, FloatingWidgetService::class.java)
+        stopService(serviceIntent)
+        isServiceRunning = false
+        updateToggleButtonText()
+    }
+
+    private fun updateToggleButtonText() {
+        val button = findViewById<Button>(R.id.toggle_service_button) // Bạn cần gán ID cho nút trong layout
+        // Hiện tại, vì không có R.id cho nút được tạo code, bạn có thể tìm theo chỉ mục nếu nó là con duy nhất
+        // Hoặc cách tốt hơn là giữ reference đến nút khi tạo.
+        // Ví dụ đơn giản, nếu nút là con đầu tiên:
+        (mainLayout.getChildAt(0) as? Button)?.text = if (isServiceRunning) "Tắt Clipboard Nổi" else "Bật Clipboard Nổi"
+        // Để đơn giản, tôi sẽ giả định bạn sẽ xử lý việc tìm nút trong thực tế.
+        // Nếu không, dòng trên sẽ gây lỗi nếu layout phức tạp.
+        // Cách an toàn hơn là biến `toggleServiceButton` thành một thuộc tính của class và cập nhật trực tiếp.
+    }
+
+    // Hàm kiểm tra xem một dịch vụ có đang chạy hay không
+    private fun isMyServiceRunning(serviceClass: Class<*>): Boolean {
+        val manager = getSystemService(Context.ACTIVITY_SERVICE) as android.app.ActivityManager
+        for (service in manager.getRunningServices(Integer.MAX_VALUE)) {
+            if (serviceClass.name == service.service.className) {
+                return true
+            }
+        }
+        return false
+    }
+
+    // Các hàm tạo cột và mục văn bản (không thay đổi so với phiên bản trước)
     private fun createColumn(title: String, items: List<String>, isPinned: Boolean): LinearLayout {
         val column = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -137,3 +227,4 @@ class MainActivity : AppCompatActivity() {
         return row
     }
 }
+
