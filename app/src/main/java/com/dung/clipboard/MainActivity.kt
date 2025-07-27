@@ -12,12 +12,11 @@ import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 
 class MainActivity : AppCompatActivity() {
-    private lateinit var clipboard: ClipboardManager
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        clipboard = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
+        // Theo dõi clipboard hệ thống
+        val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
         clipboard.addPrimaryClipChangedListener {
             val text = clipboard.primaryClip?.getItemAt(0)?.text?.toString()
             if (!text.isNullOrBlank()) {
@@ -26,8 +25,8 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        // Chia layout thành 2 cột với đường phân cách ở giữa
-        val layout = LinearLayout(this).apply {
+        // Layout ngang có 2 cột và đường phân cách giữa
+        var layout = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             weightSum = 2f
         }
@@ -37,9 +36,9 @@ class MainActivity : AppCompatActivity() {
 
         layout.addView(copiedLayout)
 
-        // Đường chia đôi
+        // Đường kẻ chia đôi màn hình theo chiều dọc
         val divider = View(this).apply {
-            layoutParams = LinearLayout.LayoutParams(4, LinearLayout.LayoutParams.MATCH_PARENT).apply {
+            layoutParams = LinearLayout.LayoutParams(2, LinearLayout.LayoutParams.MATCH_PARENT).apply {
                 setMargins(4, 0, 4, 0)
             }
             setBackgroundColor(Color.DKGRAY)
@@ -60,17 +59,15 @@ class MainActivity : AppCompatActivity() {
         val titleView = TextView(this).apply {
             text = title
             textSize = 18f
-            setPadding(16, 16, 16, 16)
             setBackgroundColor(if (isPinned) 0xFFB2DFDB.toInt() else 0xFFB3E5FC.toInt())
+            setPadding(16, 16, 16, 16)
         }
-
         column.addView(titleView)
 
         list.forEach { text ->
             val item = createTextItem(text, isPinned)
             column.addView(item)
         }
-
         return column
     }
 
@@ -132,7 +129,6 @@ class MainActivity : AppCompatActivity() {
         itemLayout.addView(editBtn)
         itemLayout.addView(pinBtn)
         itemLayout.addView(deleteBtn)
-
         return itemLayout
     }
 }
