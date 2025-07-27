@@ -95,7 +95,7 @@ class MainActivity : AppCompatActivity() {
         val editBtn = Button(this).apply {
             text = "Sửa"
             setOnClickListener {
-                val editText = EditText(this@MainActivity).apply { setText(text) }
+                var editText = EditText(this@MainActivity).apply { setText(text) }
                 AlertDialog.Builder(this@MainActivity)
                     .setTitle("Sửa nội dung")
                     .setView(editText)
