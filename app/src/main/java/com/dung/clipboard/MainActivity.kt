@@ -125,7 +125,8 @@ class MainActivity : AppCompatActivity() {
     // Thay vào đó, chúng ta sẽ tạo riêng từng item và thêm vào LinearLayout đã có sẵn
     private fun createTextItem(text: String, isPinned: Boolean): LinearLayout {
         // Tạo LinearLayout cho mỗi item
-        val row = LinearLayout(this)
+        
+var row = LinearLayout(this)
         row.orientation = LinearLayout.HORIZONTAL
         row.setPadding(8, 8, 8, 8)
 
