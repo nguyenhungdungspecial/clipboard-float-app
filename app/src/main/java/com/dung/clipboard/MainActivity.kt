@@ -5,10 +5,10 @@ import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.graphics.Color
-import android.net.Uri // Thêm import này
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
-import android.provider.Settings // Thêm import này
+import android.provider.Settings
 import android.view.View
 import android.widget.*
 import androidx.appcompat.app.AlertDialog
@@ -18,6 +18,10 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var clipboard: ClipboardManager
     private var isServiceRunning = false // Biến để theo dõi trạng thái dịch vụ
+
+    // Khai báo nút là thuộc tính của lớp
+    private lateinit var toggleServiceButton: Button
+    private lateinit var mainLayout: LinearLayout // Cũng khai báo mainLayout là thuộc tính để dễ truy cập
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -31,7 +35,7 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        val mainLayout = LinearLayout(this).apply {
+        mainLayout = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
@@ -40,7 +44,8 @@ class MainActivity : AppCompatActivity() {
         }
 
         // --- Nút bật/tắt dịch vụ Floating Widget ---
-        val toggleServiceButton = Button(this).apply {
+        toggleServiceButton = Button(this).apply {
+            // Không cần findViewById vì đang tạo bằng code và gán trực tiếp
             text = "Bật/Tắt Clipboard Nổi"
             setOnClickListener {
                 if (isServiceRunning) {
@@ -117,15 +122,9 @@ class MainActivity : AppCompatActivity() {
         updateToggleButtonText()
     }
 
+    // Đã sửa hàm này để truy cập trực tiếp biến toggleServiceButton của lớp
     private fun updateToggleButtonText() {
-        val button = findViewById<Button>(R.id.toggle_service_button) // Bạn cần gán ID cho nút trong layout
-        // Hiện tại, vì không có R.id cho nút được tạo code, bạn có thể tìm theo chỉ mục nếu nó là con duy nhất
-        // Hoặc cách tốt hơn là giữ reference đến nút khi tạo.
-        // Ví dụ đơn giản, nếu nút là con đầu tiên:
-        (mainLayout.getChildAt(0) as? Button)?.text = if (isServiceRunning) "Tắt Clipboard Nổi" else "Bật Clipboard Nổi"
-        // Để đơn giản, tôi sẽ giả định bạn sẽ xử lý việc tìm nút trong thực tế.
-        // Nếu không, dòng trên sẽ gây lỗi nếu layout phức tạp.
-        // Cách an toàn hơn là biến `toggleServiceButton` thành một thuộc tính của class và cập nhật trực tiếp.
+        toggleServiceButton.text = if (isServiceRunning) "Tắt Clipboard Nổi" else "Bật Clipboard Nổi"
     }
 
     // Hàm kiểm tra xem một dịch vụ có đang chạy hay không
@@ -139,7 +138,7 @@ class MainActivity : AppCompatActivity() {
         return false
     }
 
-    // Các hàm tạo cột và mục văn bản (không thay đổi so với phiên bản trước)
+    // Các hàm tạo cột và mục văn bản (không thay đổi)
     private fun createColumn(title: String, items: List<String>, isPinned: Boolean): LinearLayout {
         val column = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
