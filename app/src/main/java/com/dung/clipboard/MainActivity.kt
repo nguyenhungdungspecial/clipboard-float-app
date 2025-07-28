@@ -21,7 +21,7 @@ class MainActivity : AppCompatActivity() {
 
     // Khai báo nút và mainLayout là thuộc tính của lớp
     private lateinit var toggleServiceButton: Button
-    private lateinit var mainLayout: LinearLayout
+    private lateinit var mainLayout: LinearLayout // Thêm vào đây để có thể truy cập toàn cục
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -159,14 +159,12 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun createTextItem(text: String, isPinned: Boolean): LinearLayout {
-        // Thay đổi sang var và khởi tạo rõ ràng để tránh lỗi Val cannot be reassigned
-        var row: LinearLayout
-        row = LinearLayout(this)
+        // Thay đổi sang var và thiết lập thuộc tính từng bước, không dùng apply cho view chính
+        var row = LinearLayout(this)
         row.orientation = LinearLayout.HORIZONTAL
         row.setPadding(8, 8, 8, 8)
 
-        var textView: TextView
-        textView = TextView(this)
+        var textView = TextView(this)
         textView.text = text
         textView.layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
         textView.setOnClickListener {
@@ -215,12 +213,10 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        row.apply {
-            addView(textView)
-            addView(editBtn)
-            addView(pinBtn)
-            addView(deleteBtn)
-        }
+        row.addView(textView)
+        row.addView(editBtn)
+        row.addView(pinBtn)
+        row.addView(deleteBtn)
 
         return row
     }
