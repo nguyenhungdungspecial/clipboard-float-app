@@ -121,69 +121,66 @@ class MainActivity : AppCompatActivity() {
         return false
     }
 
-    // Hàm createColumn không còn cần thiết vì layout đã ở trong XML
-    // Thay vào đó, chúng ta sẽ tạo riêng từng item và thêm vào LinearLayout đã có sẵn
     private fun createTextItem(text: String, isPinned: Boolean): LinearLayout {
-        // Tạo LinearLayout cho mỗi item
-        
-var row = LinearLayout(this)
-        row.orientation = LinearLayout.HORIZONTAL
-        row.setPadding(8, 8, 8, 8)
+        // Giải pháp cực đoan: Tạo và cấu hình View trong khối apply, sau đó trả về trực tiếp
+        val row = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            setPadding(8, 8, 8, 8)
 
-        val textView = TextView(this)
-        textView.text = text
-        textView.layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
-        textView.setOnClickListener {
-            val result = Intent().apply {
-                putExtra("pasted_text", text)
-            }
-            setResult(Activity.RESULT_OK, result)
-            finish()
-        }
-
-        val editBtn = Button(this).apply {
-            text = "Sửa"
-            setOnClickListener {
-                val editText = EditText(this@MainActivity).apply {
-                    setText(text)
-                }
-                AlertDialog.Builder(this@MainActivity)
-                    .setTitle("Sửa nội dung")
-                    .setView(editText)
-                    .setPositiveButton("Lưu") { _, _ ->
-                        val newText = editText.text.toString()
-                        if (newText.isNotBlank()) {
-                            ClipboardDataManager.editText(text, newText, isPinned)
-                            recreate()
-                        }
+            val textView = TextView(this@MainActivity).apply { // Dùng this@MainActivity cho Context
+                this.text = text
+                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+                setOnClickListener {
+                    val result = Intent().apply {
+                        putExtra("pasted_text", text)
                     }
-                    .setNegativeButton("Hủy", null)
-                    .show()
+                    setResult(Activity.RESULT_OK, result)
+                    finish()
+                }
             }
-        }
+            addView(textView) // Thêm textView vào row ngay tại đây
 
-        val pinBtn = Button(this).apply {
-            text = if (isPinned) "Bỏ ghim" else "Ghim"
-            setOnClickListener {
-                if (isPinned) ClipboardDataManager.unpinText(text)
-                else ClipboardDataManager.pinText(text)
-                recreate()
+            val editBtn = Button(this@MainActivity).apply {
+                this.text = "Sửa"
+                setOnClickListener {
+                    val editText = EditText(this@MainActivity).apply {
+                        setText(text)
+                    }
+                    AlertDialog.Builder(this@MainActivity)
+                        .setTitle("Sửa nội dung")
+                        .setView(editText)
+                        .setPositiveButton("Lưu") { _, _ ->
+                            val newText = editText.text.toString()
+                            if (newText.isNotBlank()) {
+                                ClipboardDataManager.editText(text, newText, isPinned)
+                                recreate()
+                            }
+                        }
+                        .setNegativeButton("Hủy", null)
+                        .show()
+                }
             }
-        }
+            addView(editBtn)
 
-        val deleteBtn = Button(this).apply {
-            text = "Xoá"
-            setOnClickListener {
-                ClipboardDataManager.removeText(text, isPinned)
-                recreate()
+            val pinBtn = Button(this@MainActivity).apply {
+                this.text = if (isPinned) "Bỏ ghim" else "Ghim"
+                setOnClickListener {
+                    if (isPinned) ClipboardDataManager.unpinText(text)
+                    else ClipboardDataManager.pinText(text)
+                    recreate()
+                }
             }
+            addView(pinBtn)
+
+            val deleteBtn = Button(this@MainActivity).apply {
+                this.text = "Xoá"
+                setOnClickListener {
+                    ClipboardDataManager.removeText(text, isPinned)
+                    recreate()
+                }
+            }
+            addView(deleteBtn)
         }
-
-        row.addView(textView)
-        row.addView(editBtn)
-        row.addView(pinBtn)
-        row.addView(deleteBtn)
-
         return row
     }
 }
