@@ -159,12 +159,14 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun createTextItem(text: String, isPinned: Boolean): LinearLayout {
-        // Thay đổi cách khởi tạo để tránh bất kỳ hiểu nhầm nào của trình biên dịch về gán lại val
-        val row = LinearLayout(this)
+        // Thay đổi sang var và khởi tạo rõ ràng để tránh lỗi Val cannot be reassigned
+        var row: LinearLayout
+        row = LinearLayout(this)
         row.orientation = LinearLayout.HORIZONTAL
         row.setPadding(8, 8, 8, 8)
 
-        val textView = TextView(this)
+        var textView: TextView
+        textView = TextView(this)
         textView.text = text
         textView.layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
         textView.setOnClickListener {
