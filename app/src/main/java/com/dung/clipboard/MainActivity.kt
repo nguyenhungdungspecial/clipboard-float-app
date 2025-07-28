@@ -19,9 +19,9 @@ class MainActivity : AppCompatActivity() {
     private lateinit var clipboard: ClipboardManager
     private var isServiceRunning = false // Biến để theo dõi trạng thái dịch vụ
 
-    // Khai báo nút là thuộc tính của lớp
+    // Khai báo nút và mainLayout là thuộc tính của lớp
     private lateinit var toggleServiceButton: Button
-    private lateinit var mainLayout: LinearLayout // Cũng khai báo mainLayout là thuộc tính để dễ truy cập
+    private lateinit var mainLayout: LinearLayout
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -45,7 +45,6 @@ class MainActivity : AppCompatActivity() {
 
         // --- Nút bật/tắt dịch vụ Floating Widget ---
         toggleServiceButton = Button(this).apply {
-            // Không cần findViewById vì đang tạo bằng code và gán trực tiếp
             text = "Bật/Tắt Clipboard Nổi"
             setOnClickListener {
                 if (isServiceRunning) {
@@ -122,7 +121,6 @@ class MainActivity : AppCompatActivity() {
         updateToggleButtonText()
     }
 
-    // Đã sửa hàm này để truy cập trực tiếp biến toggleServiceButton của lớp
     private fun updateToggleButtonText() {
         toggleServiceButton.text = if (isServiceRunning) "Tắt Clipboard Nổi" else "Bật Clipboard Nổi"
     }
@@ -138,7 +136,7 @@ class MainActivity : AppCompatActivity() {
         return false
     }
 
-    // Các hàm tạo cột và mục văn bản (không thay đổi)
+    // Các hàm tạo cột và mục văn bản
     private fun createColumn(title: String, items: List<String>, isPinned: Boolean): LinearLayout {
         val column = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -161,6 +159,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun createTextItem(text: String, isPinned: Boolean): LinearLayout {
+        // Đảm bảo không có val nào bị gán lại trong khối này
         val row = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             setPadding(8, 8, 8, 8)
