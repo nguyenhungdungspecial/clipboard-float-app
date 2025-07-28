@@ -4,10 +4,12 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
+import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.os.IBinder
+import android.view.View // Cần import View
 import androidx.core.app.NotificationCompat
 
 class FloatingWidgetService : Service() {
@@ -16,52 +18,72 @@ class FloatingWidgetService : Service() {
     private val NOTIFICATION_CHANNEL_ID = "ClipboardFloatApp_Channel"
     private val NOTIFICATION_ID = 101
 
+    private lateinit var clipboardManager: ClipboardManager // Khai báo ClipboardManager
+
+    // Listener để lắng nghe sự thay đổi của clipboard
+    private val primaryClipChangedListener = ClipboardManager.OnPrimaryClipChangedListener {
+        val clipText = clipboardManager.primaryClip?.getItemAt(0)?.text?.toString()
+        if (!clipText.isNullOrBlank()) {
+            ClipboardDataManager.addCopy(clipText)
+            // Gửi broadcast để MainActivity biết và cập nhật giao diện
+            // Hoặc bạn có thể gọi recreate() trực tiếp nếu MainActivity đang hiển thị
+            // Nhưng cách tốt nhất là dùng BroadcastReceiver hoặc EventBus
+            // Tạm thời, để đơn giản, chúng ta sẽ không gọi recreate() từ đây.
+            // MainActivity sẽ tự update khi người dùng mở lại app hoặc khi recreate() được gọi từ MainActivity.
+        }
+    }
+
     override fun onCreate() {
         super.onCreate()
+        ClipboardDataManager.initialize(this) // Khởi tạo ClipboardDataManager với Context
         floatingWidget = FloatingWidget(this) // Khởi tạo FloatingWidget
+
+        clipboardManager = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        clipboardManager.addPrimaryClipChangedListener(primaryClipChangedListener) // Đăng ký listener
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        // Tạo Notification Channel (chỉ cần cho Android Oreo trở lên)
         createNotificationChannel()
 
-        // Tạo Intent để mở MainActivity khi click vào notification
         val notificationIntent = Intent(this, MainActivity::class.java)
         val pendingIntent = PendingIntent.getActivity(
             this,
             0,
             notificationIntent,
-            PendingIntent.FLAG_IMMUTABLE // FLAG_IMMUTABLE là bắt buộc cho PendingIntent từ Android S trở đi
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT // Thêm FLAG_UPDATE_CURRENT
         )
 
-        // Tạo Notification để chạy Foreground Service
         val notification = NotificationCompat.Builder(this, NOTIFICATION_CHANNEL_ID)
             .setContentTitle("Clipboard Float App đang chạy")
             .setContentText("Chạm để mở ứng dụng quản lý clipboard")
-            .setSmallIcon(android.R.drawable.ic_menu_edit) // Bạn có thể thay bằng icon app của mình
+            .setSmallIcon(android.R.drawable.ic_menu_edit)
             .setContentIntent(pendingIntent)
-            .setOngoing(true) // Không thể vuốt bỏ notification
+            .setOngoing(true)
             .build()
 
-        // Bắt đầu Foreground Service
         startForeground(NOTIFICATION_ID, notification)
 
-        // Hiển thị Floating Widget
-        // Kiểm tra quyền vẽ đè ở đây là không cần thiết nếu đã kiểm tra ở MainActivity trước khi khởi động Service
-        // Vì dịch vụ chạy ngầm, Toast sẽ không hiển thị.
         floatingWidget.show()
 
+        // Thêm OnClickListener cho floatingWidget để mở MainActivity
+        floatingWidget.setOnWidgetClickListener {
+            val mainActivityIntent = Intent(this, MainActivity::class.java).apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_REORDER_TO_FRONT) // Đưa Activity lên phía trước nếu đã chạy
+            }
+            startActivity(mainActivityIntent)
+        }
 
-        return START_STICKY // Nếu service bị kill, hệ thống sẽ cố gắng khởi động lại nó
+        return START_STICKY
     }
 
     override fun onDestroy() {
         super.onDestroy()
-        floatingWidget.remove() // Gọi phương thức remove() để ẩn widget khi service bị hủy
+        floatingWidget.remove() // Gỡ bỏ widget
+        clipboardManager.removePrimaryClipChangedListener(primaryClipChangedListener) // Hủy đăng ký listener
     }
 
     override fun onBind(intent: Intent?): IBinder? {
-        return null // Không hỗ trợ binding
+        return null
     }
 
     private fun createNotificationChannel() {
