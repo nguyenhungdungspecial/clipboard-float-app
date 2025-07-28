@@ -13,6 +13,7 @@ import android.util.Log
 import android.view.ContextMenu // Đảm bảo import ContextMenu
 import android.view.MenuItem // Đảm bảo import MenuItem
 import android.view.View
+import android.view.ViewGroup
 import android.widget.*
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
