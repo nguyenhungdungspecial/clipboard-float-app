@@ -13,18 +13,21 @@ import android.view.View
 import android.widget.*
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import com.dung.clipboard.databinding.ActivityMainBinding // Import View Binding Class
 
 class MainActivity : AppCompatActivity() {
 
     private lateinit var clipboard: ClipboardManager
     private var isServiceRunning = false // Biến để theo dõi trạng thái dịch vụ
 
-    // Khai báo nút và mainLayout là thuộc tính của lớp
-    private lateinit var toggleServiceButton: Button
-    private lateinit var mainLayout: LinearLayout // Thêm vào đây để có thể truy cập toàn cục
+    // Khai báo View Binding object
+    private lateinit var binding: ActivityMainBinding
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // Khởi tạo View Binding
+        binding = ActivityMainBinding.inflate(layoutInflater)
+        setContentView(binding.root) // Đặt layout gốc từ binding
 
         clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
         clipboard.addPrimaryClipChangedListener {
@@ -35,63 +38,45 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        mainLayout = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.MATCH_PARENT
-            )
-        }
-
         // --- Nút bật/tắt dịch vụ Floating Widget ---
-        toggleServiceButton = Button(this).apply {
-            text = "Bật/Tắt Clipboard Nổi"
-            setOnClickListener {
-                if (isServiceRunning) {
-                    stopFloatingWidgetService()
-                    Toast.makeText(this@MainActivity, "Đã tắt Clipboard Nổi", Toast.LENGTH_SHORT).show()
-                } else {
-                    startFloatingWidgetService()
-                }
+        binding.toggleServiceButton.setOnClickListener {
+            if (isServiceRunning) {
+                stopFloatingWidgetService()
+                Toast.makeText(this@MainActivity, "Đã tắt Clipboard Nổi", Toast.LENGTH_SHORT).show()
+            } else {
+                startFloatingWidgetService()
             }
         }
-        mainLayout.addView(toggleServiceButton)
         // --- Kết thúc nút bật/tắt dịch vụ ---
 
-        // Layout ngang với 2 cột (phần hiện tại của bạn)
-        val contentLayout = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            weightSum = 2f
-            layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                1f // Cho phép nó chiếm phần còn lại của màn hình
-            )
-        }
-
-        val copiedLayout = createColumn("Đã copy", ClipboardDataManager.getCopiedList(), false)
-        val pinnedLayout = createColumn("Đã ghim", ClipboardDataManager.getPinnedList(), true)
-
-        // Đường chia giữa
-        val divider = View(this).apply {
-            layoutParams = LinearLayout.LayoutParams(2, LinearLayout.LayoutParams.MATCH_PARENT).apply {
-                setMargins(8, 0, 8, 0)
-            }
-            setBackgroundColor(Color.DKGRAY)
-        }
-
-        contentLayout.addView(copiedLayout)
-        contentLayout.addView(divider)
-        contentLayout.addView(pinnedLayout)
-
-        mainLayout.addView(contentLayout) // Thêm contentLayout vào mainLayout
-
-        setContentView(mainLayout)
+        // Thêm các item đã copy và đã ghim vào layout XML
+        addCopiedAndPinnedItems()
 
         // Kiểm tra trạng thái dịch vụ khi Activity được tạo
         isServiceRunning = isMyServiceRunning(FloatingWidgetService::class.java)
         updateToggleButtonText() // Cập nhật text ban đầu cho nút
     }
+
+    // Hàm mới để thêm các item vào layout
+    private fun addCopiedAndPinnedItems() {
+        // Xóa tất cả View cũ trong các cột trước khi thêm lại (để tránh trùng lặp khi recreate())
+        // Giữ lại TextView tiêu đề, chỉ xóa các TextView nội dung
+        if (binding.copiedLayout.childCount > 1) { // Kiểm tra nếu có hơn 1 con (1 là tiêu đề)
+            binding.copiedLayout.removeViews(1, binding.copiedLayout.childCount - 1)
+        }
+        if (binding.pinnedLayout.childCount > 1) { // Kiểm tra nếu có hơn 1 con (1 là tiêu đề)
+            binding.pinnedLayout.removeViews(1, binding.pinnedLayout.childCount - 1)
+        }
+
+        ClipboardDataManager.getCopiedList().forEach { text ->
+            binding.copiedLayout.addView(createTextItem(text, false))
+        }
+
+        ClipboardDataManager.getPinnedList().forEach { text ->
+            binding.pinnedLayout.addView(createTextItem(text, true))
+        }
+    }
+
 
     private fun startFloatingWidgetService() {
         // Kiểm tra quyền SYSTEM_ALERT_WINDOW trước khi khởi động dịch vụ
@@ -122,7 +107,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun updateToggleButtonText() {
-        toggleServiceButton.text = if (isServiceRunning) "Tắt Clipboard Nổi" else "Bật Clipboard Nổi"
+        binding.toggleServiceButton.text = if (isServiceRunning) "Tắt Clipboard Nổi" else "Bật Clipboard Nổi"
     }
 
     // Hàm kiểm tra xem một dịch vụ có đang chạy hay không
@@ -136,35 +121,15 @@ class MainActivity : AppCompatActivity() {
         return false
     }
 
-    // Các hàm tạo cột và mục văn bản
-    private fun createColumn(title: String, items: List<String>, isPinned: Boolean): LinearLayout {
-        val column = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.MATCH_PARENT, 1f)
-        }
-
-        val titleView = TextView(this).apply {
-            text = title
-            textSize = 18f
-            setPadding(16, 16, 16, 16)
-            setBackgroundColor(if (isPinned) 0xFFB2DFDB.toInt() else 0xFFB3E5FC.toInt())
-        }
-        column.addView(titleView)
-
-        items.forEach { text ->
-            column.addView(createTextItem(text, isPinned))
-        }
-
-        return column
-    }
-
+    // Hàm createColumn không còn cần thiết vì layout đã ở trong XML
+    // Thay vào đó, chúng ta sẽ tạo riêng từng item và thêm vào LinearLayout đã có sẵn
     private fun createTextItem(text: String, isPinned: Boolean): LinearLayout {
-        // Thay đổi sang var và thiết lập thuộc tính từng bước, không dùng apply cho view chính
-        var row = LinearLayout(this)
+        // Tạo LinearLayout cho mỗi item
+        val row = LinearLayout(this)
         row.orientation = LinearLayout.HORIZONTAL
         row.setPadding(8, 8, 8, 8)
 
-        var textView = TextView(this)
+        val textView = TextView(this)
         textView.text = text
         textView.layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
         textView.setOnClickListener {
