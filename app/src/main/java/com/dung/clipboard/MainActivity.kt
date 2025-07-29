@@ -78,6 +78,7 @@ class MainActivity : AppCompatActivity() {
             textSize = 18f
             setPadding(16, 16, 16, 16)
             setBackgroundColor(if (isPinned) 0xFFB2DFDB.toInt() else 0xFFB3E5FC.toInt())
+            // Dòng này đặt layoutParams cho TextView, không phải gán lại một val
             layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
@@ -96,23 +97,13 @@ class MainActivity : AppCompatActivity() {
         pinnedLayout.addView(createColumnTitle("Đã ghim", true))
 
         // Thêm lại các mục đã copy và đã ghim vào các cột tương ứng
-        ClipboardDataManager.getAllCopies().forEach { item -> // Giả định ClipboardDataManager.getAllCopies() trả về List<ClipboardItem>
-            if (item.isPinned) {
-                pinnedLayout.addView(createTextItem(item.text, true))
-            } else {
-                copiedLayout.addView(createTextItem(item.text, false))
-            }
-        }
-        // Lưu ý: Nếu ClipboardDataManager.getCopiedList() và getPinnedList() đã có sẵn
-        // bạn có thể sử dụng chúng thay vì filter từ getAllCopies() để rõ ràng hơn:
-        /*
+        // SỬ DỤNG getCopiedList() VÀ getPinnedList() TRỰC TIẾP
         ClipboardDataManager.getCopiedList().forEach { text ->
             copiedLayout.addView(createTextItem(text, false))
         }
         ClipboardDataManager.getPinnedList().forEach { text ->
             pinnedLayout.addView(createTextItem(text, true))
         }
-        */
     }
 
     private fun createTextItem(text: String, isPinned: Boolean): LinearLayout {
