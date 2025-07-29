@@ -1,4 +1,3 @@
-package com.dung.clipboard
 
 import android.app.Activity
 import android.content.ClipboardManager
@@ -11,94 +10,112 @@ import android.widget.*
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 
-class MainActivity : AppCompatActivity() {
-
-    private lateinit var clipboard: ClipboardManager
-    private lateinit var copiedLayout: LinearLayout // Biến để giữ tham chiếu đến cột "Đã copy"
-    private lateinit var pinnedLayout: LinearLayout // Biến để giữ tham chiếu đến cột "Đã ghim"
-
-    override fun onCreate(savedInstanceState: Bundle?) {
+class MainActivity : AppCompatActivity() { 
+    private lateinit var clipboard: 
+    ClipboardManager private lateinit var 
+    copiedLayout: LinearLayout // Biến để giữ 
+    tham chiếu đến cột "Đã copy" private 
+    lateinit var pinnedLayout: LinearLayout // 
+    Biến để giữ tham chiếu đến cột "Đã ghim" 
+    override fun onCreate(savedInstanceState: 
+    Bundle?) {
         super.onCreate(savedInstanceState)
-        // Khởi tạo ClipboardDataManager. Đảm bảo ClipboardDataManager.kt cũng tồn tại và có các hàm cần thiết.
-        ClipboardDataManager.initialize(this)
-
-        clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-        clipboard.addPrimaryClipChangedListener {
-            val clipText = clipboard.primaryClip?.getItemAt(0)?.text?.toString()
+        // Khởi tạo ClipboardDataManager. Đảm 
+        // bảo ClipboardDataManager.kt cũng tồn 
+        // tại và có các hàm cần thiết.
+        ClipboardDataManager.initialize(this) 
+        clipboard = 
+        getSystemService(Context.CLIPBOARD_SERVICE) 
+        as ClipboardManager 
+        clipboard.addPrimaryClipChangedListener 
+        {
+            val clipText = 
+            clipboard.primaryClip?.getItemAt(0)?.text?.toString() 
             if (!clipText.isNullOrBlank()) {
-                ClipboardDataManager.addCopy(clipText)
-                updateUI() // ĐÃ SỬA: Gọi hàm updateUI() thay vì recreate()
+                ClipboardDataManager.addCopy(clipText) 
+                updateUI() // ĐÃ SỬA: Gọi hàm 
+                updateUI() thay vì recreate()
             }
         }
-
         // Layout chính (ngang)
-        val mainLayout = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            weightSum = 2f
-            layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
+        val mainLayout = 
+        LinearLayout(this).apply {
+            orientation = 
+            LinearLayout.HORIZONTAL weightSum = 
+            2f layoutParams = 
+            LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, 
                 LinearLayout.LayoutParams.MATCH_PARENT
             )
         }
-
-        // Tạo các cột và gán vào biến thành viên
-        copiedLayout = createColumnContainer()
+        // Tạo các cột và gán vào biến thành 
+        // viên
+        copiedLayout = createColumnContainer() 
         pinnedLayout = createColumnContainer()
-
         // Đường chia giữa
-        val divider = View(this).apply {
-            layoutParams = LinearLayout.LayoutParams(2, LinearLayout.LayoutParams.MATCH_PARENT).apply {
+        val divider = View(this).apply { 
+            layoutParams = 
+            LinearLayout.LayoutParams(2, 
+            LinearLayout.LayoutParams.MATCH_PARENT).apply 
+            {
                 setMargins(8, 0, 8, 0)
             }
             setBackgroundColor(Color.DKGRAY)
         }
-
-        mainLayout.addView(copiedLayout)
-        mainLayout.addView(divider)
-        mainLayout.addView(pinnedLayout)
-
+        mainLayout.addView(copiedLayout) 
+        mainLayout.addView(divider) 
+        mainLayout.addView(pinnedLayout) 
         setContentView(mainLayout)
-
-        // Cập nhật giao diện lần đầu khi Activity được tạo
+        // Cập nhật giao diện lần đầu khi 
+        // Activity được tạo
         updateUI()
     }
-
-    // Hàm tạo Container cho cột (bao gồm tiêu đề và danh sách item)
-    private fun createColumnContainer(): LinearLayout {
-        return LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.MATCH_PARENT, 1f)
+    // Hàm tạo Container cho cột (bao gồm tiêu 
+    // đề và danh sách item)
+    private fun createColumnContainer(): 
+    LinearLayout {
+        return LinearLayout(this).apply { 
+            orientation = LinearLayout.VERTICAL 
+            layoutParams = 
+            LinearLayout.LayoutParams(0, 
+            LinearLayout.LayoutParams.MATCH_PARENT, 
+            1f)
         }
     }
-
     // Hàm tạo tiêu đề cột
-    private fun createColumnTitle(title: String, isPinned: Boolean): TextView {
-        return TextView(this).apply {
-            text = title
-            textSize = 18f
-            setPadding(16, 16, 16, 16)
-            setBackgroundColor(if (isPinned) 0xFFB2DFDB.toInt() else 0xFFB3E5FC.toInt())
-            layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
+    private fun createColumnTitle(title: String, 
+    isPinned: Boolean): TextView {
+        return TextView(this).apply { text = 
+            title textSize = 18f setPadding(16, 
+            16, 16, 16) setBackgroundColor(if 
+            (isPinned) 0xFFB2DFDB.toInt() else 
+            0xFFB3E5FC.toInt()) layoutParams = 
+            LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, 
                 LinearLayout.LayoutParams.WRAP_CONTENT
             )
         }
     }
-
     // Hàm cập nhật lại toàn bộ giao diện
     private fun updateUI() {
-        // Xóa tất cả các view cũ trong cả hai cột
-        copiedLayout.removeAllViews()
+        // Xóa tất cả các view cũ trong cả hai 
+        // cột
+        copiedLayout.removeAllViews() 
         pinnedLayout.removeAllViews()
-
         // Thêm lại tiêu đề cho từng cột
-        copiedLayout.addView(createColumnTitle("Đã copy", false))
-        pinnedLayout.addView(createColumnTitle("Đã ghim", true))
-
-        // Thêm lại các mục đã copy và đã ghim vào các cột tương ứng
-        ClipboardDataManager.getAllCopies().forEach { item -> // Giả định ClipboardDataManager.getAllCopies() trả về List<ClipboardItem>
-            if (item.isPinned) {
-                pinnedLayout.addView(createTextItem(item.text, true))
+        copiedLayout.addView(createColumnTitle("Đã 
+        copy", false)) 
+        pinnedLayout.addView(createColumnTitle("Đã 
+        ghim", true))
+        // Thêm lại các mục đã copy và đã ghim 
+        // vào các cột tương ứng
+        ClipboardDataManager.getAllCopies().forEach 
+        { item -> // Giả định 
+        ClipboardDataManager.getAllCopies() trả 
+        về List<ClipboardItem>
+            if (item.isPinned) { 
+                pinnedLayout.addView(createTextItem(item.text, 
+                true))
             } else {
                 copiedLayout.addView(createTextItem(item.text, false))
             }
