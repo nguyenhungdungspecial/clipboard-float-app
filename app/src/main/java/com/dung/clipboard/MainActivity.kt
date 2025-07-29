@@ -71,19 +71,20 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    // Hàm tạo tiêu đề cột - ĐÃ SỬA LỖI "Val cannot be reassigned"
+    // Hàm tạo tiêu đề cột - ĐÃ SỬA LỖI "Val cannot be reassigned" TRIỆT ĐỂ HƠN
     private fun createColumnTitle(title: String, isPinned: Boolean): TextView {
-        val textView = TextView(this)
-        textView.apply {
+        // Khởi tạo TextView và gán layoutParams ngay lập tức
+        val textView = TextView(this).apply {
+            // Gán layoutParams ngay trong khối khởi tạo TextView
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            )
             text = title
             textSize = 18f
             setPadding(16, 16, 16, 16)
             setBackgroundColor(if (isPinned) 0xFFB2DFDB.toInt() else 0xFFB3E5FC.toInt())
         }
-        textView.layoutParams = LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.MATCH_PARENT,
-            LinearLayout.LayoutParams.WRAP_CONTENT
-        )
         return textView
     }
 
