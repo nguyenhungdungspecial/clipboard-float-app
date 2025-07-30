@@ -31,7 +31,10 @@ android {
         jvmTarget = '17'
     }
 
-    // ĐÃ XÓA: buildFeatures { viewBinding true } vì MainActivity không dùng View Binding
+    // Đã thêm đoạn code này vào đây
+    buildFeatures {
+        viewBinding true
+    }
 }
 
 dependencies {
@@ -39,6 +42,5 @@ dependencies {
     implementation "androidx.appcompat:appcompat:1.6.1"
     implementation "com.google.android.material:material:1.11.0"
     implementation "androidx.constraintlayout:constraintlayout:2.1.4"
-    implementation "com.google.code.gson:gson:2.10.1" // Đã thêm dependency Gson
+    implementation "com.google.code.gson:gson:2.10.1" // Thêm dòng này
 }
-
