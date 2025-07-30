@@ -26,7 +26,7 @@ class FloatingWidget(private val context: Context) {
 
     fun show() {
         Log.d("FloatingWidget", "show: Attempting to show widget")
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.canDrawOverlays(context)) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M &&!Settings.canDrawOverlays(context)) {
             Log.w("FloatingWidget", "show: No SYSTEM_ALERT_WINDOW permission")
             return
         }
@@ -85,7 +85,7 @@ class FloatingWidget(private val context: Context) {
 
     fun remove() {
         Log.d("FloatingWidget", "remove: Attempting to remove widget")
-        if (floatingView != null && windowManager != null && floatingView?.windowToken != null) {
+        if (floatingView!= null && windowManager!= null && floatingView?.windowToken!= null) {
             try {
                 windowManager?.removeView(floatingView)
                 Log.d("FloatingWidget", "remove: Widget removed from WindowManager")

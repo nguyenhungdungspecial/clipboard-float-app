@@ -9,11 +9,11 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
-import android.util.Log // Đảm bảo import Log
-import android.view.ContextMenu // Đảm bảo import ContextMenu
-import android.view.MenuItem // Đảm bảo import MenuItem
+import android.util.Log
+import android.view.ContextMenu
+import android.view.MenuItem
 import android.view.View
-import android.view.ViewGroup // Đảm bảo import ViewGroup
+import android.view.ViewGroup
 import android.widget.*
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
@@ -24,9 +24,6 @@ class MainActivity : AppCompatActivity() {
     private lateinit var clipboard: ClipboardManager
     private var isServiceRunning = false
 
-    // ĐÃ SỬA: Không dùng binding vì không dùng View Binding
-    // private lateinit var binding: ActivityMainBinding
-
     // Biến để giữ tham chiếu đến cột "Đã copy" và "Đã ghim"
     private lateinit var copiedLayout: LinearLayout
     private lateinit var pinnedLayout: LinearLayout
@@ -34,6 +31,10 @@ class MainActivity : AppCompatActivity() {
     // Biến tạm để lưu dữ liệu khi context menu được tạo
     private var selectedText: String? = null
     private var selectedIsPinned: Boolean = false
+
+    // Biến để giữ tham chiếu đến nút bật/tắt dịch vụ (vì không dùng View Binding)
+    private lateinit var toggleServiceButton: Button
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -52,11 +53,36 @@ class MainActivity : AppCompatActivity() {
 
         // Layout chính (ngang)
         val mainLayout = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL // Đã sửa thành VERTICAL để chứa nút toggle
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.MATCH_PARENT
+            )
+        }
+
+        // --- Nút bật/tắt dịch vụ Floating Widget ---
+        toggleServiceButton = Button(this).apply {
+            text = "Bật/Tắt Clipboard Nổi"
+            setOnClickListener {
+                if (isServiceRunning) {
+                    stopFloatingWidgetService()
+                    Toast.makeText(this@MainActivity, "Đã tắt Clipboard Nổi", Toast.LENGTH_SHORT).show()
+                    Log.d("MainActivity", "Toggle service: Stopping service")
+                } else {
+                    startFloatingWidgetService()
+                    Log.d("MainActivity", "Toggle service: Starting service")
+                }
+            }
+        }
+        mainLayout.addView(toggleServiceButton) // Thêm nút vào mainLayout
+
+        // Layout chứa 2 cột (ngang)
+        val contentColumnsLayout = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             weightSum = 2f
             layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.MATCH_PARENT
+                LinearLayout.LayoutParams.MATCH_PARENT // Chiếm phần còn lại của màn hình
             )
         }
 
@@ -72,9 +98,11 @@ class MainActivity : AppCompatActivity() {
             setBackgroundColor(Color.DKGRAY)
         }
 
-        mainLayout.addView(copiedLayout)
-        mainLayout.addView(divider)
-        mainLayout.addView(pinnedLayout)
+        contentColumnsLayout.addView(copiedLayout)
+        contentColumnsLayout.addView(divider)
+        contentColumnsLayout.addView(pinnedLayout)
+
+        mainLayout.addView(contentColumnsLayout) // Thêm layout cột vào mainLayout
 
         setContentView(mainLayout)
 
@@ -86,8 +114,7 @@ class MainActivity : AppCompatActivity() {
         super.onResume()
         Log.d("MainActivity", "onResume: Activity resumed, refreshing items")
         ClipboardDataManager.initialize(this) // Đảm bảo dữ liệu được tải mới nhất
-        updateUI() // ĐÃ SỬA: Gọi updateUI() thay vì addCopiedAndPinnedItems() trực tiếp
-        // isServiceRunning và updateToggleButtonText() sẽ được gọi trong updateUI() nếu cần
+        updateUI() // ĐÃ SỬA: Gọi updateUI()
     }
 
     // Hàm tạo Container cho cột (bao gồm tiêu đề và danh sách item)
@@ -176,9 +203,9 @@ class MainActivity : AppCompatActivity() {
                     setText(text)
                 }
                 AlertDialog.Builder(this@MainActivity)
-                   .setTitle("Sửa nội dung")
-                   .setView(editText)
-                   .setPositiveButton("Lưu") { _, _ ->
+                  .setTitle("Sửa nội dung")
+                  .setView(editText)
+                  .setPositiveButton("Lưu") { _, _ ->
                         val newText = editText.text.toString()
                         if (newText.isNotBlank()) {
                             ClipboardDataManager.editText(text, newText, isPinned)
@@ -188,8 +215,8 @@ class MainActivity : AppCompatActivity() {
                             Toast.makeText(this@MainActivity, "Nội dung không được để trống", Toast.LENGTH_SHORT).show()
                         }
                     }
-                   .setNegativeButton("Hủy", null)
-                   .show()
+                  .setNegativeButton("Hủy", null)
+                  .show()
             }
         }
 
@@ -207,15 +234,15 @@ class MainActivity : AppCompatActivity() {
             text = "Xoá"
             setOnClickListener {
                 AlertDialog.Builder(this@MainActivity)
-                   .setTitle("Xác nhận xóa")
-                   .setMessage("Bạn có chắc chắn muốn xóa mục này không?\n\"$text\"")
-                   .setPositiveButton("Xóa") { _, _ ->
+                  .setTitle("Xác nhận xóa")
+                  .setMessage("Bạn có chắc chắn muốn xóa mục này không?\n\"$text\"")
+                  .setPositiveButton("Xóa") { _, _ ->
                         ClipboardDataManager.removeText(text, isPinned)
                         updateUI() // ĐÃ SỬA: Gọi hàm updateUI()
                         Toast.makeText(this@MainActivity, "Đã xóa", Toast.LENGTH_SHORT).show()
                     }
-                   .setNegativeButton("Hủy", null)
-                   .show()
+                  .setNegativeButton("Hủy", null)
+                  .show()
             }
         }
 
@@ -258,9 +285,9 @@ class MainActivity : AppCompatActivity() {
         val input = EditText(this)
         input.setText(oldText)
         AlertDialog.Builder(this)
-           .setTitle("Chỉnh sửa nội dung")
-           .setView(input)
-           .setPositiveButton("Lưu") { dialog, _ ->
+          .setTitle("Chỉnh sửa nội dung")
+          .setView(input)
+          .setPositiveButton("Lưu") { dialog, _ ->
                 val newText = input.text.toString()
                 if (newText.isNotBlank()) {
                     ClipboardDataManager.editText(oldText, newText, isPinned)
@@ -271,26 +298,26 @@ class MainActivity : AppCompatActivity() {
                 }
                 dialog.dismiss()
             }
-           .setNegativeButton("Hủy") { dialog, _ ->
+          .setNegativeButton("Hủy") { dialog, _ ->
                 dialog.cancel()
             }
-           .show()
+          .show()
     }
 
     private fun showConfirmDeleteDialog(text: String, isPinned: Boolean) {
         AlertDialog.Builder(this)
-           .setTitle("Xác nhận xóa")
-           .setMessage("Bạn có chắc chắn muốn xóa mục này không?\n\"$text\"")
-           .setPositiveButton("Xóa") { dialog, _ ->
+          .setTitle("Xác nhận xóa")
+          .setMessage("Bạn có chắc chắn muốn xóa mục này không?\n\"$text\"")
+          .setPositiveButton("Xóa") { dialog, _ ->
                 ClipboardDataManager.removeText(text, isPinned)
                 updateUI() // ĐÃ SỬA: Gọi hàm updateUI()
                 Toast.makeText(this, "Đã xóa", Toast.LENGTH_SHORT).show()
                 dialog.dismiss()
             }
-           .setNegativeButton("Hủy") { dialog, _ ->
+          .setNegativeButton("Hủy") { dialog, _ ->
                 dialog.cancel()
             }
-           .show()
+          .show()
     }
 
     // =========================================================================================
@@ -322,1060 +349,14 @@ class MainActivity : AppCompatActivity() {
         updateToggleButtonText()
     }
 
-    private fun updateToggleButtonText() {
-        // Đảm bảo nút này được tạo và có thể truy cập được
-        // Nếu bạn đang dùng View Binding, nó sẽ là binding.toggleServiceButton
-        // Nếu không, bạn cần tìm nó bằng findViewById hoặc giữ tham chiếu
-        // Trong phiên bản này, tôi giả định bạn sẽ thêm nút này vào layout chính
-        // và bạn sẽ có một cách để truy cập nó (ví dụ: thông qua một biến thành viên)
-        // Hoặc bạn có thể thêm một nút vào layout chính và gán ID cho nó trong XML
-        // và sau đó dùng findViewById(R.id.toggleServiceButton)
-        // Vì bạn đang dùng UI động, tôi sẽ giả định bạn có một cách để truy cập nút này.
-        // Nếu nút này được tạo trong onCreate() và không phải là biến thành viên,
-        // bạn sẽ cần truyền nó vào hàm này hoặc làm cho nó thành biến thành viên.
-        // Để đơn giản, tôi sẽ thêm một biến thành viên cho nút này.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm biến toggleServiceButton ở đầu lớp)
-        // Nếu bạn không dùng View Binding, bạn cần tạo nút này trong onCreate()
-        // và gán nó cho biến thành viên toggleServiceButton.
-        // Ví dụ: toggleServiceButton = Button(this).apply {... }
-        // Hoặc nếu bạn đã có nút này trong layout XML, bạn sẽ dùng findViewById.
-        // Vì bạn đang dùng UI động, tôi sẽ giả định nút này được tạo trong onCreate()
-        // và được gán cho biến thành viên toggleServiceButton.
-        // (Lưu ý: Tôi đã thêm
+    private fun isMyServiceRunning(serviceClass: Class<*>): Boolean {
+        val manager = getSystemService(Context.ACTIVITY_SERVICE) as android.app.ActivityManager
+        for (service in manager.getRunningServices(Integer.MAX_VALUE)) {
+            if (serviceClass.name == service.service.className) {
+                return true
+            }
+        }
+        return false
+    }
+}
 
