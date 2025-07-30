@@ -9,7 +9,7 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.os.IBinder
-import android.util.Log
+import android.util.Log // THÊM DÒNG NÀY
 import androidx.core.app.NotificationCompat
 
 class FloatingWidgetService : Service() {
@@ -21,19 +21,19 @@ class FloatingWidgetService : Service() {
     private lateinit var clipboardManager: ClipboardManager
 
     private val primaryClipChangedListener = ClipboardManager.OnPrimaryClipChangedListener {
-        Log.d("FloatingWidgetService", "Clipboard changed detected!")
+        Log.d("FloatingWidgetService", "Clipboard changed detected!") // THÊM LOG
         val clipText = clipboardManager.primaryClip?.getItemAt(0)?.text?.toString()
         if (!clipText.isNullOrBlank()) {
-            Log.d("FloatingWidgetService", "New clip text: $clipText")
+            Log.d("FloatingWidgetService", "New clip text: $clipText") // THÊM LOG
             ClipboardDataManager.addCopy(clipText)
         } else {
-            Log.d("FloatingWidgetService", "Clip text is null or blank.")
+            Log.d("FloatingWidgetService", "Clip text is null or blank.") // THÊM LOG
         }
     }
 
     override fun onCreate() {
         super.onCreate()
-        Log.d("FloatingWidgetService", "onCreate: Service created")
+        Log.d("FloatingWidgetService", "onCreate: Service created") // THÊM LOG
         ClipboardDataManager.initialize(this) // Đảm bảo dữ liệu được khởi tạo
         floatingWidget = FloatingWidget(this)
 
@@ -42,8 +42,8 @@ class FloatingWidgetService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        Log.d("FloatingWidgetService", "onStartCommand: Service started")
-        createNotificationChannel() // Đảm bảo kênh thông báo được tạo
+        Log.d("FloatingWidgetService", "onStartCommand: Service started") // THÊM LOG
+        createNotificationChannel()
 
         val notificationIntent = Intent(this, MainActivity::class.java)
         val pendingIntent = PendingIntent.getActivity(
@@ -54,12 +54,12 @@ class FloatingWidgetService : Service() {
         )
 
         val notification = NotificationCompat.Builder(this, NOTIFICATION_CHANNEL_ID)
-           .setContentTitle("Clipboard Float App đang chạy")
-           .setContentText("Chạm để mở ứng dụng quản lý clipboard")
-           .setSmallIcon(android.R.drawable.ic_menu_edit)
-           .setContentIntent(pendingIntent)
-           .setOngoing(true)
-           .build()
+            .setContentTitle("Clipboard Float App đang chạy")
+            .setContentText("Chạm để mở ứng dụng quản lý clipboard")
+            .setSmallIcon(android.R.drawable.ic_menu_edit)
+            .setContentIntent(pendingIntent)
+            .setOngoing(true)
+            .build()
 
         startForeground(NOTIFICATION_ID, notification)
 
@@ -70,7 +70,7 @@ class FloatingWidgetService : Service() {
 
     override fun onDestroy() {
         super.onDestroy()
-        Log.d("FloatingWidgetService", "onDestroy: Service destroyed")
+        Log.d("FloatingWidgetService", "onDestroy: Service destroyed") // THÊM LOG
         floatingWidget.remove() // Gỡ bỏ widget
         clipboardManager.removePrimaryClipChangedListener(primaryClipChangedListener) // Hủy đăng ký listener
     }
@@ -79,20 +79,5 @@ class FloatingWidgetService : Service() {
         return null
     }
 
-    // Hàm tạo kênh thông báo đã được hoàn chỉnh
-    private fun createNotificationChannel() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val serviceChannel = NotificationChannel(
-                NOTIFICATION_CHANNEL_ID,
-                "Clipboard Float App Service Channel",
-                NotificationManager.IMPORTANCE_LOW // Mức độ quan trọng thấp để thông báo không quá làm phiền
-            )
-            val manager = getSystemService(NotificationManager::class.java)
-            manager.createNotificationChannel(serviceChannel)
-            Log.d("FloatingWidgetService", "createNotificationChannel: Channel created")
-        } else {
-            Log.d("FloatingWidgetService", "createNotificationChannel: Android version < O, no channel needed")
-        }
-    }
+    private fun createNotificationChannel() { /* ... */ }
 }
-
