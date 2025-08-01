@@ -28,6 +28,7 @@ class FloatingWidget(private val context: Context) {
         Log.d("FloatingWidget", "show: Attempting to show widget") // THÊM LOG
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.canDrawOverlays(context)) {
             Log.w("FloatingWidget", "show: No SYSTEM_ALERT_WINDOW permission") // THÊM LOG
+            // Có thể bạn muốn hiển thị một Toast hoặc thông báo ở đây
             return
         }
 
@@ -58,6 +59,7 @@ class FloatingWidget(private val context: Context) {
             y = 300
         }
         Log.d("FloatingWidget", "show: LayoutParams set") // THÊM LOG
+
 
         floatingView?.setOnTouchListener(FloatingTouchListener(layoutParams!!))
 
@@ -120,7 +122,7 @@ class FloatingWidget(private val context: Context) {
                 }
 
                 MotionEvent.ACTION_UP -> {
-                    if (isClick && (Math.abs(event.rawX - initialTouchX) < 10 && Math.abs(event.rawY - initialTouchY) < 10)) {
+                    if (isClick && (kotlin.math.abs(event.rawX - initialTouchX) < 10 && kotlin.math.abs(event.rawY - initialTouchY) < 10)) {
                         view.performClick()
                         Log.d("FloatingWidget", "onTouch: ACTION_UP - Performing Click") // THÊM LOG
                     } else {
@@ -142,3 +144,4 @@ class FloatingWidget(private val context: Context) {
         }
     }
 }
+

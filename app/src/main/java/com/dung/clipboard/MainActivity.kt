@@ -19,6 +19,7 @@ import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import com.dung.clipboard.databinding.ActivityMainBinding
 
+
 class MainActivity : AppCompatActivity() {
 
     private lateinit var clipboard: ClipboardManager
@@ -176,6 +177,7 @@ class MainActivity : AppCompatActivity() {
         }
         registerForContextMenu(textView) // Đăng ký TextView cho Context Menu
 
+
         // Nút pin/unpin
         val pinButton = ImageView(this).apply {
             layoutParams = LinearLayout.LayoutParams(
@@ -283,32 +285,5 @@ class MainActivity : AppCompatActivity() {
             }
             .show()
     }
-
-    // =========================================================================================
-    // Cần có menu XML cho Context Menu
-    // =========================================================================================
-    // file: res/menu/context_menu.xml
-    /*
-    <?xml version="1.0" encoding="utf-8"?>
-    <menu xmlns:android="http://schemas.android.com/apk/res/android">
-        <item
-            android:id="@+id/menu_edit"
-            android:title="Chỉnh sửa" />
-        <item
-            android:id="@+id/menu_delete"
-            android:title="Xóa" />
-    </menu>
-    */
-    // =========================================================================================
-    // Cần có drawable XML cho item background
-    // =========================================================================================
-    // file: res/drawable/item_background.xml
-    /*
-    <?xml version="1.0" encoding="utf-8"?>
-    <shape xmlns:android="http://schemas.android.com/apk/res/android">
-        <solid android:color="#F0F0F0" /> // Màu nền
-        <corners android:radius="8dp" /> // Bo góc
-        <stroke android:width="1dp" android:color="#CCCCCC" /> // Viền
-    </shape>
-    */
 }
+

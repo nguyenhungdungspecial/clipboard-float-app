@@ -96,3 +96,4 @@ object ClipboardDataManager {
         Log.d("ClipboardDataManager", "editText: Edited from '$oldText' to '$newText'. Is pinned: $isPinned") // THÊM LOG
     }
 }
+
