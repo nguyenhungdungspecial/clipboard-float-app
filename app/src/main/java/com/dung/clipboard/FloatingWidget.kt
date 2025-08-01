@@ -6,7 +6,7 @@ import android.graphics.Color
 import android.graphics.PixelFormat
 import android.os.Build
 import android.provider.Settings
-import android.util.Log // THÊM DÒNG NÀY
+import android.util.Log
 import android.view.Gravity
 import android.view.MotionEvent
 import android.view.View
@@ -21,14 +21,13 @@ class FloatingWidget(private val context: Context) {
 
     init {
         windowManager = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
-        Log.d("FloatingWidget", "init: FloatingWidget initialized") // THÊM LOG
+        Log.d("FloatingWidget", "init: FloatingWidget initialized")
     }
 
     fun show() {
-        Log.d("FloatingWidget", "show: Attempting to show widget") // THÊM LOG
+        Log.d("FloatingWidget", "show: Attempting to show widget")
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.canDrawOverlays(context)) {
-            Log.w("FloatingWidget", "show: No SYSTEM_ALERT_WINDOW permission") // THÊM LOG
-            // Có thể bạn muốn hiển thị một Toast hoặc thông báo ở đây
+            Log.w("FloatingWidget", "show: No SYSTEM_ALERT_WINDOW permission")
             return
         }
 
@@ -38,7 +37,7 @@ class FloatingWidget(private val context: Context) {
                 layoutParams = ViewGroup.LayoutParams(150, 150)
                 setBackgroundColor(Color.parseColor("#80FFFFFF"))
             }
-            Log.d("FloatingWidget", "show: floatingView created") // THÊM LOG
+            Log.d("FloatingWidget", "show: floatingView created")
         }
 
         val layoutFlag = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -58,13 +57,13 @@ class FloatingWidget(private val context: Context) {
             x = 100
             y = 300
         }
-        Log.d("FloatingWidget", "show: LayoutParams set") // THÊM LOG
+        Log.d("FloatingWidget", "show: LayoutParams set")
 
 
         floatingView?.setOnTouchListener(FloatingTouchListener(layoutParams!!))
 
         floatingView?.setOnClickListener {
-            Log.d("FloatingWidget", "onClick: Floating widget clicked, opening MainActivity") // THÊM LOG
+            Log.d("FloatingWidget", "onClick: Floating widget clicked, opening MainActivity")
             val intent = Intent(context, MainActivity::class.java).apply {
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)
             }
@@ -74,31 +73,31 @@ class FloatingWidget(private val context: Context) {
         try {
             if (floatingView?.windowToken == null) {
                 windowManager?.addView(floatingView, layoutParams)
-                Log.d("FloatingWidget", "show: Widget added to WindowManager") // THÊM LOG
+                Log.d("FloatingWidget", "show: Widget added to WindowManager")
             } else {
                 windowManager?.updateViewLayout(floatingView, layoutParams)
-                Log.d("FloatingWidget", "show: Widget updated in WindowManager") // THÊM LOG
+                Log.d("FloatingWidget", "show: Widget updated in WindowManager")
             }
         } catch (e: Exception) {
-            Log.e("FloatingWidget", "show: Error adding/updating widget", e) // THÊM LOG LỖI
+            Log.e("FloatingWidget", "show: Error adding/updating widget", e)
             e.printStackTrace()
         }
     }
 
     fun remove() {
-        Log.d("FloatingWidget", "remove: Attempting to remove widget") // THÊM LOG
+        Log.d("FloatingWidget", "remove: Attempting to remove widget")
         if (floatingView != null && windowManager != null && floatingView?.windowToken != null) {
             try {
                 windowManager?.removeView(floatingView)
-                Log.d("FloatingWidget", "remove: Widget removed from WindowManager") // THÊM LOG
+                Log.d("FloatingWidget", "remove: Widget removed from WindowManager")
             } catch (e: IllegalArgumentException) {
-                Log.e("FloatingWidget", "remove: Error removing widget (not attached?)", e) // THÊM LOG LỖI
+                Log.e("FloatingWidget", "remove: Error removing widget (not attached?)", e)
                 e.printStackTrace()
             }
             floatingView = null
             layoutParams = null
         } else {
-            Log.d("FloatingWidget", "remove: Widget or WindowManager is null, or widget not attached.") // THÊM LOG
+            Log.d("FloatingWidget", "remove: Widget or WindowManager is null, or widget not attached.")
         }
     }
 
@@ -107,40 +106,41 @@ class FloatingWidget(private val context: Context) {
         private var initialY = 0
         private var initialTouchX = 0f
         private var initialTouchY = 0f
-        private var isClick = false
+        private var lastAction: Int = 0
 
         override fun onTouch(view: View, event: MotionEvent): Boolean {
-            when (event.action) {
+            when (event.actionMasked) {
                 MotionEvent.ACTION_DOWN -> {
                     initialX = layoutParams.x
                     initialY = layoutParams.y
                     initialTouchX = event.rawX
                     initialTouchY = event.rawY
-                    isClick = true
-                    Log.d("FloatingWidget", "onTouch: ACTION_DOWN") // THÊM LOG
+                    lastAction = MotionEvent.ACTION_DOWN
                     return true
                 }
 
                 MotionEvent.ACTION_UP -> {
-                    if (isClick && (kotlin.math.abs(event.rawX - initialTouchX) < 10 && kotlin.math.abs(event.rawY - initialTouchY) < 10)) {
+                    if (lastAction == MotionEvent.ACTION_DOWN) {
                         view.performClick()
-                        Log.d("FloatingWidget", "onTouch: ACTION_UP - Performing Click") // THÊM LOG
-                    } else {
-                        Log.d("FloatingWidget", "onTouch: ACTION_UP - Not a click (moved too much)") // THÊM LOG
                     }
+                    lastAction = MotionEvent.ACTION_UP
                     return true
                 }
 
                 MotionEvent.ACTION_MOVE -> {
-                    layoutParams.x = initialX + (event.rawX - initialTouchX).toInt()
-                    layoutParams.y = initialY + (event.rawY - initialTouchY).toInt()
+                    val deltaX = (event.rawX - initialTouchX).toInt()
+                    val deltaY = (event.rawY - initialTouchY).toInt()
+
+                    layoutParams.x = initialX + deltaX
+                    layoutParams.y = initialY + deltaY
+
                     windowManager?.updateViewLayout(view, layoutParams)
-                    isClick = false
-                    // Log.d("FloatingWidget", "onTouch: ACTION_MOVE - x=${layoutParams.x}, y=${layoutParams.y}") // Có thể quá nhiều log
+                    lastAction = MotionEvent.ACTION_MOVE
                     return true
                 }
+
+                else -> return false
             }
-            return false
         }
     }
 }
