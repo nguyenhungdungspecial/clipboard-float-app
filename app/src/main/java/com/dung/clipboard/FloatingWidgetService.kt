@@ -34,10 +34,10 @@ class FloatingWidgetService : Service() {
     override fun onCreate() {
         super.onCreate()
         Log.d("FloatingWidgetService", "onCreate: Service created")
-        ClipboardDataManager.initialize(this) // Đảm bảo dữ liệu được khởi tạo
+        ClipboardDataManager.initialize(this)
         floatingWidget = FloatingWidget(this)
         clipboardManager = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-        clipboardManager.addPrimaryClipChangedListener(primaryClipChangedListener) // Đăng ký listener
+        clipboardManager.addPrimaryClipChangedListener(primaryClipChangedListener)
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -62,7 +62,7 @@ class FloatingWidgetService : Service() {
 
         startForeground(NOTIFICATION_ID, notification)
 
-        floatingWidget.show() // Hiển thị Floating Widget
+        floatingWidget.show()
 
         return START_STICKY
     }
@@ -70,8 +70,8 @@ class FloatingWidgetService : Service() {
     override fun onDestroy() {
         super.onDestroy()
         Log.d("FloatingWidgetService", "onDestroy: Service destroyed")
-        floatingWidget.remove() // Gỡ bỏ widget
-        clipboardManager.removePrimaryClipChangedListener(primaryClipChangedListener) // Hủy đăng ký listener
+        floatingWidget.remove()
+        clipboardManager.removePrimaryClipChangedListener(primaryClipChangedListener)
     }
 
     override fun onBind(intent: Intent?): IBinder? {
