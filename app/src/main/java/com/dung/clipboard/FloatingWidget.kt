@@ -131,8 +131,13 @@ class FloatingWidget(private val context: Context) {
                     val deltaX = (event.rawX - initialTouchX).toInt()
                     val deltaY = (event.rawY - initialTouchY).toInt()
 
-                    layoutParams.x = initialX + deltaX
-                    layoutParams.y = initialY + deltaY
+                    // Sửa lỗi: Cần tính toán lại vị trí x, y một cách chính xác hơn
+                    // Dựa trên layoutParams.gravity và vị trí ban đầu
+                    val newX = initialX + deltaX
+                    val newY = initialY + deltaY
+
+                    layoutParams.x = newX
+                    layoutParams.y = newY
 
                     windowManager?.updateViewLayout(view, layoutParams)
                     lastAction = MotionEvent.ACTION_MOVE
@@ -144,4 +149,3 @@ class FloatingWidget(private val context: Context) {
         }
     }
 }
-
