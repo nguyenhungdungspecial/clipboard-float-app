@@ -26,6 +26,9 @@ class FloatingWidgetService : Service() {
         if (!clipText.isNullOrBlank()) {
             Log.d("FloatingWidgetService", "New clip text: $clipText")
             ClipboardDataManager.addCopy(clipText)
+            // Gửi broadcast để MainActivity cập nhật giao diện
+            val intent = Intent("com.dung.clipboard.ACTION_CLIPBOARD_UPDATE")
+            sendBroadcast(intent)
         } else {
             Log.d("FloatingWidgetService", "Clip text is null or blank.")
         }

@@ -14,17 +14,11 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.WindowManager
 import android.widget.ImageView
-import androidx.core.content.ContextCompat
 
 class FloatingWidget(private val context: Context) {
     private var windowManager: WindowManager? = null
     private var floatingView: ImageView? = null
     private var layoutParams: WindowManager.LayoutParams? = null
-    
-    // Sử dụng một biến tĩnh để kiểm tra trạng thái Activity
-    companion object {
-        var isMainActivityVisible = false
-    }
 
     init {
         windowManager = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
@@ -69,20 +63,19 @@ class FloatingWidget(private val context: Context) {
         floatingView?.setOnTouchListener(FloatingTouchListener(layoutParams!!))
 
         floatingView?.setOnClickListener {
-            // Sử dụng biến tĩnh để kiểm tra trạng thái
-            if (isMainActivityVisible) {
-                Log.d("FloatingWidget", "MainActivity is visible, closing it.")
-                val closeIntent = Intent(context, MainActivity::class.java).apply {
-                    action = "com.dung.clipboard.ACTION_CLOSE_UI"
-                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+            if (isMainActivityRunning()) {
+                Log.d("FloatingWidget", "MainActivity is running, sending close intent.")
+                val intent = Intent(context, MainActivity::class.java).apply {
+                    action = "com.dung.clipboard.ACTION_TOGGLE_UI"
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
                 }
-                context.startActivity(closeIntent)
+                context.startActivity(intent)
             } else {
-                Log.d("FloatingWidget", "MainActivity is not visible, opening it.")
-                val openIntent = Intent(context, MainActivity::class.java).apply {
+                Log.d("FloatingWidget", "MainActivity is not running, opening it.")
+                val intent = Intent(context, MainActivity::class.java).apply {
                     addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 }
-                context.startActivity(openIntent)
+                context.startActivity(intent)
             }
         }
 
@@ -117,6 +110,17 @@ class FloatingWidget(private val context: Context) {
         }
     }
 
+    private fun isMainActivityRunning(): Boolean {
+        val manager = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
+        val runningTasks = manager.getRunningTasks(10)
+        for (task in runningTasks) {
+            if (task.topActivity?.packageName == context.packageName && task.baseActivity?.className == MainActivity::class.java.name) {
+                return true
+            }
+        }
+        return false
+    }
+
     inner class FloatingTouchListener(private val layoutParams: WindowManager.LayoutParams) : View.OnTouchListener {
         private var initialX = 0
         private var initialY = 0
@@ -146,7 +150,6 @@ class FloatingWidget(private val context: Context) {
                     val deltaX = (event.rawX - initialTouchX).toInt()
                     val deltaY = (event.rawY - initialTouchY).toInt()
 
-                    // Coi là kéo nếu di chuyển quá 10 pixel
                     if (isClick && (Math.abs(deltaX) > 10 || Math.abs(deltaY) > 10)) {
                         isClick = false
                     }
