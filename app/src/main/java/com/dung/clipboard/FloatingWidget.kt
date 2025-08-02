@@ -59,13 +59,12 @@ class FloatingWidget(private val context: Context) {
         }
         Log.d("FloatingWidget", "show: LayoutParams set")
 
-
         floatingView?.setOnTouchListener(FloatingTouchListener(layoutParams!!))
 
         floatingView?.setOnClickListener {
-            Log.d("FloatingWidget", "onClick: Floating widget clicked, toggling MainActivity")
+            Log.d("FloatingWidget", "onClick: Floating widget clicked, opening MainActivity")
             val intent = Intent(context, MainActivity::class.java).apply {
-                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             }
             context.startActivity(intent)
         }
@@ -121,7 +120,10 @@ class FloatingWidget(private val context: Context) {
 
                 MotionEvent.ACTION_UP -> {
                     if (lastAction == MotionEvent.ACTION_DOWN) {
-                        view.performClick()
+                        // Kích hoạt click chỉ khi không di chuyển nhiều
+                        if (Math.abs(event.rawX - initialTouchX) < 10 && Math.abs(event.rawY - initialTouchY) < 10) {
+                            view.performClick()
+                        }
                     }
                     lastAction = MotionEvent.ACTION_UP
                     return true

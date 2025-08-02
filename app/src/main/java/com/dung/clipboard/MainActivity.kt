@@ -1,9 +1,6 @@
 package com.dung.clipboard
 
-import android.app.Activity
-import android.content.ClipboardManager
-import android.content.Context
-import android.content.Intent
+import android.content.*
 import android.graphics.Color
 import android.net.Uri
 import android.os.Build
@@ -19,16 +16,23 @@ import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import com.dung.clipboard.databinding.ActivityMainBinding
 
-
 class MainActivity : AppCompatActivity() {
 
     private lateinit var clipboard: ClipboardManager
     private var isServiceRunning = false
-
     private lateinit var binding: ActivityMainBinding
-
     private var selectedText: String? = null
     private var selectedIsPinned: Boolean = false
+
+    // BroadcastReceiver để nhận thông báo cập nhật từ dịch vụ
+    private val clipboardUpdateReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            if (intent?.action == "com.dung.clipboard.ACTION_CLIPBOARD_UPDATE") {
+                Log.d("MainActivity", "Broadcast received: clipboard updated. Refreshing UI...")
+                updateUI()
+            }
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -38,7 +42,6 @@ class MainActivity : AppCompatActivity() {
         setContentView(binding.root)
 
         clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-        // Đã xóa listener ở đây để tránh xung đột
 
         binding.toggleServiceButton.setOnClickListener {
             if (isServiceRunning) {
@@ -51,25 +54,33 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        // Tải dữ liệu ban đầu
         updateUI()
     }
 
     override fun onResume() {
         super.onResume()
-        Log.d("MainActivity", "onResume: Activity resumed, refreshing items")
-        // Đảm bảo dữ liệu được tải mới nhất và cập nhật giao diện mỗi khi quay lại
-        ClipboardDataManager.initialize(this)
+        Log.d("MainActivity", "onResume: Activity resumed")
+        // Đăng ký BroadcastReceiver khi activity hiển thị
+        val filter = IntentFilter("com.dung.clipboard.ACTION_CLIPBOARD_UPDATE")
+        registerReceiver(clipboardUpdateReceiver, filter)
         updateUI()
+    }
+
+    override fun onPause() {
+        super.onPause()
+        Log.d("MainActivity", "onPause: Activity paused")
+        // Hủy đăng ký BroadcastReceiver khi activity bị ẩn
+        unregisterReceiver(clipboardUpdateReceiver)
     }
 
     private fun updateUI() {
         Log.d("MainActivity", "updateUI: Refreshing UI elements")
+        ClipboardDataManager.initialize(this) // Đảm bảo dữ liệu được tải mới nhất
         addCopiedAndPinnedItems()
         isServiceRunning = isMyServiceRunning(FloatingWidgetService::class.java)
         updateToggleButtonText()
     }
-    
+
     private fun addCopiedAndPinnedItems() {
         Log.d("MainActivity", "addCopiedAndPinnedItems: Refreshing lists")
         // Giữ lại tiêu đề (thường là child 0)
@@ -167,7 +178,6 @@ class MainActivity : AppCompatActivity() {
             }
         }
         registerForContextMenu(textView)
-
 
         val pinButton = ImageView(this).apply {
             layoutParams = LinearLayout.LayoutParams(
