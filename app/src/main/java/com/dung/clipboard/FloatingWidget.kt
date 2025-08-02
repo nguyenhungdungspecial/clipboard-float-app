@@ -14,11 +14,17 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.WindowManager
 import android.widget.ImageView
+import androidx.core.content.ContextCompat
 
 class FloatingWidget(private val context: Context) {
     private var windowManager: WindowManager? = null
     private var floatingView: ImageView? = null
     private var layoutParams: WindowManager.LayoutParams? = null
+    
+    // Sử dụng một biến tĩnh để kiểm tra trạng thái Activity
+    companion object {
+        var isMainActivityVisible = false
+    }
 
     init {
         windowManager = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
@@ -63,15 +69,16 @@ class FloatingWidget(private val context: Context) {
         floatingView?.setOnTouchListener(FloatingTouchListener(layoutParams!!))
 
         floatingView?.setOnClickListener {
-            if (isMainActivityRunning()) {
-                Log.d("FloatingWidget", "MainActivity is running, closing it.")
+            // Sử dụng biến tĩnh để kiểm tra trạng thái
+            if (isMainActivityVisible) {
+                Log.d("FloatingWidget", "MainActivity is visible, closing it.")
                 val closeIntent = Intent(context, MainActivity::class.java).apply {
                     action = "com.dung.clipboard.ACTION_CLOSE_UI"
                     addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
                 }
                 context.startActivity(closeIntent)
             } else {
-                Log.d("FloatingWidget", "MainActivity is not running, opening it.")
+                Log.d("FloatingWidget", "MainActivity is not visible, opening it.")
                 val openIntent = Intent(context, MainActivity::class.java).apply {
                     addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 }
@@ -110,22 +117,12 @@ class FloatingWidget(private val context: Context) {
         }
     }
 
-    private fun isMainActivityRunning(): Boolean {
-        val manager = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
-        for (task in manager.getAppTasks()) {
-            if (task.taskInfo.baseActivity?.className == MainActivity::class.java.name) {
-                return true
-            }
-        }
-        return false
-    }
-
     inner class FloatingTouchListener(private val layoutParams: WindowManager.LayoutParams) : View.OnTouchListener {
         private var initialX = 0
         private var initialY = 0
         private var initialTouchX = 0f
         private var initialTouchY = 0f
-        private var lastAction: Int = 0
+        private var isClick = true
 
         override fun onTouch(view: View, event: MotionEvent): Boolean {
             when (event.actionMasked) {
@@ -134,18 +131,14 @@ class FloatingWidget(private val context: Context) {
                     initialY = layoutParams.y
                     initialTouchX = event.rawX
                     initialTouchY = event.rawY
-                    lastAction = MotionEvent.ACTION_DOWN
+                    isClick = true
                     return true
                 }
 
                 MotionEvent.ACTION_UP -> {
-                    // Kích hoạt click nếu không có nhiều di chuyển
-                    if (lastAction == MotionEvent.ACTION_DOWN &&
-                        Math.abs(event.rawX - initialTouchX) < 10 &&
-                        Math.abs(event.rawY - initialTouchY) < 10) {
+                    if (isClick) {
                         view.performClick()
                     }
-                    lastAction = MotionEvent.ACTION_UP
                     return true
                 }
 
@@ -153,11 +146,16 @@ class FloatingWidget(private val context: Context) {
                     val deltaX = (event.rawX - initialTouchX).toInt()
                     val deltaY = (event.rawY - initialTouchY).toInt()
 
-                    layoutParams.x = initialX + deltaX
-                    layoutParams.y = initialY + deltaY
+                    // Coi là kéo nếu di chuyển quá 10 pixel
+                    if (isClick && (Math.abs(deltaX) > 10 || Math.abs(deltaY) > 10)) {
+                        isClick = false
+                    }
 
-                    windowManager?.updateViewLayout(view, layoutParams)
-                    lastAction = MotionEvent.ACTION_MOVE
+                    if (!isClick) {
+                        layoutParams.x = initialX + deltaX
+                        layoutParams.y = initialY + deltaY
+                        windowManager?.updateViewLayout(view, layoutParams)
+                    }
                     return true
                 }
 
