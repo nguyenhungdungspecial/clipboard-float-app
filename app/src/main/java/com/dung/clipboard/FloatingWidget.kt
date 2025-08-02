@@ -150,7 +150,7 @@ class FloatingWidget(private val context: Context) {
                     val deltaX = (event.rawX - initialTouchX).toInt()
                     val deltaY = (event.rawY - initialTouchY).toInt()
 
-                    if (isClick && (Math.abs(deltaX) > 10 || Math.abs(deltaY) > 10)) {
+                    if (isClick && (kotlin.math.abs(deltaX) > 10 || kotlin.math.abs(deltaY) > 10)) {
                         isClick = false
                     }
 

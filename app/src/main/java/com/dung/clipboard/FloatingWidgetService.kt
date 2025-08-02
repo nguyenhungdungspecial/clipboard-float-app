@@ -17,7 +17,7 @@ class FloatingWidgetService : Service() {
     private lateinit var floatingWidget: FloatingWidget
     private val NOTIFICATION_CHANNEL_ID = "ClipboardFloatApp_Channel"
     private val NOTIFICATION_ID = 101
-
+    
     private lateinit var clipboardManager: ClipboardManager
 
     private val primaryClipChangedListener = ClipboardManager.OnPrimaryClipChangedListener {
@@ -25,7 +25,13 @@ class FloatingWidgetService : Service() {
         val clipText = clipboardManager.primaryClip?.getItemAt(0)?.text?.toString()
         if (!clipText.isNullOrBlank()) {
             Log.d("FloatingWidgetService", "New clip text: $clipText")
-            ClipboardDataManager.addCopy(clipText)
+            // Kiểm tra xem đã tồn tại trong danh sách ghim hay chưa
+            if (!ClipboardDataManager.getPinnedList().contains(clipText)) {
+                ClipboardDataManager.addCopy(clipText)
+                // Gửi broadcast để MainActivity cập nhật giao diện
+                val intent = Intent("com.dung.clipboard.ACTION_UPDATE_UI")
+                sendBroadcast(intent)
+            }
         } else {
             Log.d("FloatingWidgetService", "Clip text is null or blank.")
         }
@@ -43,7 +49,7 @@ class FloatingWidgetService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         Log.d("FloatingWidgetService", "onStartCommand: Service started")
         createNotificationChannel()
-
+    
         val notificationIntent = Intent(this, MainActivity::class.java)
         val pendingIntent = PendingIntent.getActivity(
             this,
@@ -51,7 +57,7 @@ class FloatingWidgetService : Service() {
             notificationIntent,
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
-
+    
         val notification = NotificationCompat.Builder(this, NOTIFICATION_CHANNEL_ID)
             .setContentTitle("Clipboard Float App đang chạy")
             .setContentText("Chạm để mở ứng dụng quản lý clipboard")
@@ -59,11 +65,11 @@ class FloatingWidgetService : Service() {
             .setContentIntent(pendingIntent)
             .setOngoing(true)
             .build()
-
+    
         startForeground(NOTIFICATION_ID, notification)
-
+    
         floatingWidget.show()
-
+        
         return START_STICKY
     }
 

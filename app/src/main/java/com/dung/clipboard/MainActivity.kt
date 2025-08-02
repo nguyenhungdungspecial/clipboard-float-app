@@ -1,8 +1,10 @@
 package com.dung.clipboard
 
+import android.content.BroadcastReceiver
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.graphics.Color
 import android.net.Uri
 import android.os.Build
@@ -10,6 +12,7 @@ import android.os.Bundle
 import android.provider.Settings
 import android.util.Log
 import android.view.ContextMenu
+import android.view.Gravity
 import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
@@ -23,13 +26,21 @@ import androidx.appcompat.app.AppCompatActivity
 import com.dung.clipboard.databinding.ActivityMainBinding
 
 class MainActivity : AppCompatActivity() {
-
     private lateinit var clipboard: ClipboardManager
     private var isServiceRunning = false
     private lateinit var binding: ActivityMainBinding
     private var selectedText: String? = null
     private var selectedIsPinned: Boolean = false
-    
+
+    private val updateUIReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            if (intent?.action == "com.dung.clipboard.ACTION_UPDATE_UI") {
+                Log.d("MainActivity", "Received broadcast to update UI.")
+                updateUI()
+            }
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         Log.d("MainActivity", "onCreate: Activity created")
@@ -39,11 +50,10 @@ class MainActivity : AppCompatActivity() {
 
         clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
 
-        if (intent?.action == "com.dung.clipboard.ACTION_TOGGLE_UI") {
-            Log.d("MainActivity", "Received toggle action. Finishing activity.")
-            finish()
-        }
-
+        // Đăng ký BroadcastReceiver
+        val filter = IntentFilter("com.dung.clipboard.ACTION_UPDATE_UI")
+        registerReceiver(updateUIReceiver, filter, RECEIVER_EXPORTED)
+        
         binding.toggleServiceButton.setOnClickListener {
             if (isServiceRunning) {
                 stopFloatingWidgetService()
@@ -62,6 +72,12 @@ class MainActivity : AppCompatActivity() {
         updateUI()
     }
     
+    override fun onDestroy() {
+        super.onDestroy()
+        // Hủy đăng ký BroadcastReceiver khi Activity bị hủy
+        unregisterReceiver(updateUIReceiver)
+    }
+
     override fun onNewIntent(intent: Intent?) {
         super.onNewIntent(intent)
         Log.d("MainActivity", "onNewIntent: Received new intent with action ${intent?.action}")
@@ -83,7 +99,8 @@ class MainActivity : AppCompatActivity() {
         binding.copiedLayout.removeViews(1, binding.copiedLayout.childCount - 1)
         binding.pinnedLayout.removeViews(1, binding.pinnedLayout.childCount - 1)
 
-        ClipboardDataManager.getCopiedList().forEach { text ->
+        // Lấy danh sách đã copy và giới hạn 10 mục
+        ClipboardDataManager.getCopiedList().take(10).forEach { text ->
             binding.copiedLayout.addView(createTextItem(text, false))
         }
 
@@ -94,8 +111,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun startFloatingWidgetService() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.canDrawOverlays(this)) {
-            val intent = Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-                Uri.parse("package:$packageName"))
+            val intent = Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:$packageName"))
             startActivityForResult(intent, 123)
             Toast.makeText(this, "Vui lòng cấp quyền vẽ đè lên ứng dụng khác", Toast.LENGTH_LONG).show()
         } else {
@@ -144,6 +160,7 @@ class MainActivity : AppCompatActivity() {
             }
             orientation = LinearLayout.HORIZONTAL
             setBackgroundResource(R.drawable.item_background)
+            gravity = Gravity.CENTER_VERTICAL
             setPadding(16, 16, 16, 16)
         }
 
@@ -157,6 +174,7 @@ class MainActivity : AppCompatActivity() {
             textSize = 16f
             setTextColor(Color.BLACK)
             setPadding(0, 0, 16, 0)
+            maxLines = 2 // Giới hạn 2 dòng
             setOnClickListener {
                 clipboard.setPrimaryClip(android.content.ClipData.newPlainText("Copied Text", text))
                 Toast.makeText(this@MainActivity, "Đã sao chép: $text", Toast.LENGTH_SHORT).show()
@@ -174,12 +192,14 @@ class MainActivity : AppCompatActivity() {
                 ViewGroup.LayoutParams.WRAP_CONTENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT
             ).apply {
-                setMargins(8, 0, 0, 0)
+                setMargins(8, 0, 8, 0)
             }
             setImageResource(if (isPinned) android.R.drawable.btn_star_big_on else android.R.drawable.btn_star_big_off)
             setOnClickListener {
                 if (isPinned) {
                     ClipboardDataManager.unpinText(text)
+                    // Sau khi bỏ ghim, thêm lại vào danh sách đã copy
+                    ClipboardDataManager.addCopy(text)
                     Toast.makeText(this@MainActivity, "Đã bỏ ghim", Toast.LENGTH_SHORT).show()
                 } else {
                     ClipboardDataManager.pinText(text)
@@ -194,7 +214,7 @@ class MainActivity : AppCompatActivity() {
                 ViewGroup.LayoutParams.WRAP_CONTENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT
             ).apply {
-                setMargins(8, 0, 0, 0)
+                setMargins(0, 0, 0, 0)
             }
             setImageResource(android.R.drawable.ic_delete)
             setOnClickListener {
