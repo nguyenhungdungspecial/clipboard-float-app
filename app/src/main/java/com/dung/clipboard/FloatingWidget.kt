@@ -53,7 +53,8 @@ class FloatingWidget(private val context: Context) {
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
             PixelFormat.TRANSLUCENT
         ).apply {
-            gravity = Gravity.TOP or Gravity.END
+            // Đã thay đổi Gravity thành TOP | START để đơn giản hóa logic tọa độ
+            gravity = Gravity.TOP or Gravity.START
             x = 100
             y = 300
         }
@@ -131,13 +132,8 @@ class FloatingWidget(private val context: Context) {
                     val deltaX = (event.rawX - initialTouchX).toInt()
                     val deltaY = (event.rawY - initialTouchY).toInt()
 
-                    // Sửa lỗi: Cần tính toán lại vị trí x, y một cách chính xác hơn
-                    // Dựa trên layoutParams.gravity và vị trí ban đầu
-                    val newX = initialX + deltaX
-                    val newY = initialY + deltaY
-
-                    layoutParams.x = newX
-                    layoutParams.y = newY
+                    layoutParams.x = initialX + deltaX
+                    layoutParams.y = initialY + deltaY
 
                     windowManager?.updateViewLayout(view, layoutParams)
                     lastAction = MotionEvent.ACTION_MOVE
@@ -149,3 +145,4 @@ class FloatingWidget(private val context: Context) {
         }
     }
 }
+
