@@ -1,10 +1,8 @@
 package com.dung.clipboard
 
-import android.content.BroadcastReceiver
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
-import android.content.IntentFilter
 import android.graphics.Color
 import android.net.Uri
 import android.os.Build
@@ -31,16 +29,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
     private var selectedText: String? = null
     private var selectedIsPinned: Boolean = false
-
-    private val clipboardUpdateReceiver = object : BroadcastReceiver() {
-        override fun onReceive(context: Context?, intent: Intent?) {
-            if (intent?.action == "com.dung.clipboard.ACTION_CLIPBOARD_UPDATE") {
-                Log.d("MainActivity", "Broadcast received, refreshing UI.")
-                updateUI()
-            }
-        }
-    }
-
+    
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         Log.d("MainActivity", "onCreate: Activity created")
@@ -50,38 +39,32 @@ class MainActivity : AppCompatActivity() {
 
         clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
 
+        if (intent?.action == "com.dung.clipboard.ACTION_TOGGLE_UI") {
+            Log.d("MainActivity", "Received toggle action. Finishing activity.")
+            finish()
+        }
+
         binding.toggleServiceButton.setOnClickListener {
             if (isServiceRunning) {
                 stopFloatingWidgetService()
                 Toast.makeText(this, "Đã tắt Clipboard Nổi", Toast.LENGTH_SHORT).show()
-                Log.d("MainActivity", "Toggle service: Stopping service")
             } else {
                 startFloatingWidgetService()
-                Log.d("MainActivity", "Toggle service: Starting service")
             }
         }
-
-        updateUI()
     }
 
     override fun onResume() {
         super.onResume()
-        Log.d("MainActivity", "onResume: Activity resumed")
-        val filter = IntentFilter("com.dung.clipboard.ACTION_CLIPBOARD_UPDATE")
-        registerReceiver(clipboardUpdateReceiver, filter)
+        Log.d("MainActivity", "onResume: Activity resumed, updating UI...")
+        // Tải lại dữ liệu mỗi khi Activity hiển thị
+        ClipboardDataManager.initialize(this)
         updateUI()
     }
-
-    override fun onPause() {
-        super.onPause()
-        Log.d("MainActivity", "onPause: Activity paused")
-        unregisterReceiver(clipboardUpdateReceiver)
-    }
-
+    
     override fun onNewIntent(intent: Intent?) {
         super.onNewIntent(intent)
         Log.d("MainActivity", "onNewIntent: Received new intent with action ${intent?.action}")
-        // Xử lý logic đóng/mở giao diện khi nhấn icon nổi
         if (intent?.action == "com.dung.clipboard.ACTION_TOGGLE_UI") {
             Log.d("MainActivity", "Received toggle action, finishing activity.")
             finish()
@@ -97,21 +80,15 @@ class MainActivity : AppCompatActivity() {
 
     private fun addCopiedAndPinnedItems() {
         Log.d("MainActivity", "addCopiedAndPinnedItems: Refreshing lists")
-        if (binding.copiedLayout.childCount > 1) {
-            binding.copiedLayout.removeViews(1, binding.copiedLayout.childCount - 1)
-        }
-        if (binding.pinnedLayout.childCount > 1) {
-            binding.pinnedLayout.removeViews(1, binding.pinnedLayout.childCount - 1)
-        }
+        binding.copiedLayout.removeViews(1, binding.copiedLayout.childCount - 1)
+        binding.pinnedLayout.removeViews(1, binding.pinnedLayout.childCount - 1)
 
         ClipboardDataManager.getCopiedList().forEach { text ->
             binding.copiedLayout.addView(createTextItem(text, false))
-            Log.d("MainActivity", "Added copied item: $text")
         }
 
         ClipboardDataManager.getPinnedList().forEach { text ->
             binding.pinnedLayout.addView(createTextItem(text, true))
-            Log.d("MainActivity", "Added pinned item: $text")
         }
     }
 
