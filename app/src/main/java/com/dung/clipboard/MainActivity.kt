@@ -51,9 +51,8 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        addCopiedAndPinnedItems()
-        isServiceRunning = isMyServiceRunning(FloatingWidgetService::class.java)
-        updateToggleButtonText()
+        // Tải dữ liệu ban đầu
+        updateUI()
     }
 
     override fun onResume() {
@@ -61,11 +60,16 @@ class MainActivity : AppCompatActivity() {
         Log.d("MainActivity", "onResume: Activity resumed, refreshing items")
         // Đảm bảo dữ liệu được tải mới nhất và cập nhật giao diện mỗi khi quay lại
         ClipboardDataManager.initialize(this)
+        updateUI()
+    }
+
+    private fun updateUI() {
+        Log.d("MainActivity", "updateUI: Refreshing UI elements")
         addCopiedAndPinnedItems()
         isServiceRunning = isMyServiceRunning(FloatingWidgetService::class.java)
         updateToggleButtonText()
     }
-
+    
     private fun addCopiedAndPinnedItems() {
         Log.d("MainActivity", "addCopiedAndPinnedItems: Refreshing lists")
         // Giữ lại tiêu đề (thường là child 0)
@@ -181,7 +185,7 @@ class MainActivity : AppCompatActivity() {
                     ClipboardDataManager.pinText(text)
                     Toast.makeText(this@MainActivity, "Đã ghim", Toast.LENGTH_SHORT).show()
                 }
-                recreate()
+                updateUI()
             }
         }
 
@@ -238,7 +242,7 @@ class MainActivity : AppCompatActivity() {
                 val newText = input.text.toString()
                 if (newText.isNotBlank()) {
                     ClipboardDataManager.editText(oldText, newText, isPinned)
-                    recreate()
+                    updateUI()
                     Toast.makeText(this, "Đã lưu chỉnh sửa", Toast.LENGTH_SHORT).show()
                 } else {
                     Toast.makeText(this, "Nội dung không được để trống", Toast.LENGTH_SHORT).show()
@@ -257,7 +261,7 @@ class MainActivity : AppCompatActivity() {
             .setMessage("Bạn có chắc chắn muốn xóa mục này không?\n\"$text\"")
             .setPositiveButton("Xóa") { dialog, _ ->
                 ClipboardDataManager.removeText(text, isPinned)
-                recreate()
+                updateUI()
                 Toast.makeText(this, "Đã xóa", Toast.LENGTH_SHORT).show()
                 dialog.dismiss()
             }

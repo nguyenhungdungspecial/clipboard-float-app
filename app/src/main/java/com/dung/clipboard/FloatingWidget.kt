@@ -53,7 +53,6 @@ class FloatingWidget(private val context: Context) {
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
             PixelFormat.TRANSLUCENT
         ).apply {
-            // Đã thay đổi Gravity thành TOP | START để đơn giản hóa logic tọa độ
             gravity = Gravity.TOP or Gravity.START
             x = 100
             y = 300
@@ -64,7 +63,7 @@ class FloatingWidget(private val context: Context) {
         floatingView?.setOnTouchListener(FloatingTouchListener(layoutParams!!))
 
         floatingView?.setOnClickListener {
-            Log.d("FloatingWidget", "onClick: Floating widget clicked, opening MainActivity")
+            Log.d("FloatingWidget", "onClick: Floating widget clicked, toggling MainActivity")
             val intent = Intent(context, MainActivity::class.java).apply {
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)
             }
