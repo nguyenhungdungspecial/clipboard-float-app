@@ -28,9 +28,12 @@ class FloatingWidgetService : Service() {
             // Kiểm tra xem đã tồn tại trong danh sách ghim hay chưa
             if (!ClipboardDataManager.getPinnedList().contains(clipText)) {
                 ClipboardDataManager.addCopy(clipText)
+                Log.d("FloatingWidgetService", "Added clip to data manager. Sending broadcast.")
                 // Gửi broadcast để MainActivity cập nhật giao diện
                 val intent = Intent("com.dung.clipboard.ACTION_UPDATE_UI")
                 sendBroadcast(intent)
+            } else {
+                 Log.d("FloatingWidgetService", "Clip text is already pinned, not adding to copied list.")
             }
         } else {
             Log.d("FloatingWidgetService", "Clip text is null or blank.")

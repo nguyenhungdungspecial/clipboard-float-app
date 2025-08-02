@@ -15,8 +15,8 @@ object ClipboardDataManager {
     private const val COPIED_LIST_KEY = "copied_list"
     private const val PINNED_LIST_KEY = "pinned_list"
 
-    private val copiedList = mutableListOf<String>()
-    private val pinnedList = mutableListOf<String>()
+    private var copiedList = mutableListOf<String>()
+    private var pinnedList = mutableListOf<String>()
 
     fun initialize(context: Context) {
         if (!::sharedPreferences.isInitialized) {
@@ -33,7 +33,7 @@ object ClipboardDataManager {
         val copiedJson = sharedPreferences.getString(COPIED_LIST_KEY, null)
         if (copiedJson != null) {
             val type = object : TypeToken<MutableList<String>>() {}.type
-            copiedList.addAll(GSON.fromJson(copiedJson, type))
+            copiedList = GSON.fromJson(copiedJson, type) ?: mutableListOf()
             Log.d("ClipboardDataManager", "loadData: Loaded copied list. Size: ${copiedList.size}")
         } else {
             Log.d("ClipboardDataManager", "loadData: No copied list found in SharedPreferences.")
@@ -42,7 +42,7 @@ object ClipboardDataManager {
         val pinnedJson = sharedPreferences.getString(PINNED_LIST_KEY, null)
         if (pinnedJson != null) {
             val type = object : TypeToken<MutableList<String>>() {}.type
-            pinnedList.addAll(GSON.fromJson(pinnedJson, type))
+            pinnedList = GSON.fromJson(pinnedJson, type) ?: mutableListOf()
             Log.d("ClipboardDataManager", "loadData: Loaded pinned list. Size: ${pinnedList.size}")
         } else {
             Log.d("ClipboardDataManager", "loadData: No pinned list found in SharedPreferences.")
@@ -59,8 +59,11 @@ object ClipboardDataManager {
 
     fun addCopy(text: String) {
         if (text.isNotBlank() && !copiedList.contains(text) && !pinnedList.contains(text)) {
+            // Giới hạn danh sách chỉ 20 mục
+            if (copiedList.size >= 20) {
+                copiedList.removeLast()
+            }
             copiedList.add(0, text)
-            if (copiedList.size > 20) copiedList.removeLast()
             saveData()
             Log.d("ClipboardDataManager", "addCopy: Added '$text'. New copied size: ${copiedList.size}")
         } else {
@@ -73,21 +76,38 @@ object ClipboardDataManager {
 
     fun pinText(text: String) {
         if (!pinnedList.contains(text)) {
+            // Kiểm tra xem mục có tồn tại trong copiedList trước khi ghim không
+            if (copiedList.contains(text)) {
+                copiedList.remove(text)
+            }
             pinnedList.add(0, text)
-            copiedList.remove(text)
             saveData()
             Log.d("ClipboardDataManager", "pinText: Pinned '$text'.")
         }
     }
 
     fun unpinText(text: String) {
-        pinnedList.remove(text)
-        saveData()
-        Log.d("ClipboardDataManager", "unpinText: Unpinned '$text'.")
+        if (pinnedList.contains(text)) {
+            pinnedList.remove(text)
+            // Thêm lại vào danh sách đã copy nếu nó chưa tồn tại ở đó
+            if (!copiedList.contains(text)) {
+                copiedList.add(0, text)
+                // Đảm bảo danh sách không vượt quá giới hạn
+                if (copiedList.size > 20) {
+                    copiedList.removeLast()
+                }
+            }
+            saveData()
+            Log.d("ClipboardDataManager", "unpinText: Unpinned '$text'.")
+        }
     }
 
     fun removeText(text: String, isPinned: Boolean) {
-        if (isPinned) pinnedList.remove(text) else copiedList.remove(text)
+        if (isPinned) {
+            pinnedList.remove(text)
+        } else {
+            copiedList.remove(text)
+        }
         saveData()
         Log.d("ClipboardDataManager", "removeText: Removed '$text'. Is pinned: $isPinned")
     }
