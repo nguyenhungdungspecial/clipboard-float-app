@@ -1,5 +1,6 @@
 package com.dung.clipboard
 
+import android.app.ActivityManager
 import android.content.Context
 import android.content.Intent
 import android.graphics.Color
@@ -62,11 +63,20 @@ class FloatingWidget(private val context: Context) {
         floatingView?.setOnTouchListener(FloatingTouchListener(layoutParams!!))
 
         floatingView?.setOnClickListener {
-            Log.d("FloatingWidget", "onClick: Floating widget clicked, opening MainActivity")
-            val intent = Intent(context, MainActivity::class.java).apply {
-                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            if (isMainActivityRunning()) {
+                Log.d("FloatingWidget", "MainActivity is running, closing it.")
+                val closeIntent = Intent(context, MainActivity::class.java).apply {
+                    action = "com.dung.clipboard.ACTION_CLOSE_UI"
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                }
+                context.startActivity(closeIntent)
+            } else {
+                Log.d("FloatingWidget", "MainActivity is not running, opening it.")
+                val openIntent = Intent(context, MainActivity::class.java).apply {
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
+                context.startActivity(openIntent)
             }
-            context.startActivity(intent)
         }
 
         try {
@@ -100,6 +110,16 @@ class FloatingWidget(private val context: Context) {
         }
     }
 
+    private fun isMainActivityRunning(): Boolean {
+        val manager = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
+        for (task in manager.getAppTasks()) {
+            if (task.taskInfo.baseActivity?.className == MainActivity::class.java.name) {
+                return true
+            }
+        }
+        return false
+    }
+
     inner class FloatingTouchListener(private val layoutParams: WindowManager.LayoutParams) : View.OnTouchListener {
         private var initialX = 0
         private var initialY = 0
@@ -119,11 +139,11 @@ class FloatingWidget(private val context: Context) {
                 }
 
                 MotionEvent.ACTION_UP -> {
-                    if (lastAction == MotionEvent.ACTION_DOWN) {
-                        // Kích hoạt click chỉ khi không di chuyển nhiều
-                        if (Math.abs(event.rawX - initialTouchX) < 10 && Math.abs(event.rawY - initialTouchY) < 10) {
-                            view.performClick()
-                        }
+                    // Kích hoạt click nếu không có nhiều di chuyển
+                    if (lastAction == MotionEvent.ACTION_DOWN &&
+                        Math.abs(event.rawX - initialTouchX) < 10 &&
+                        Math.abs(event.rawY - initialTouchY) < 10) {
+                        view.performClick()
                     }
                     lastAction = MotionEvent.ACTION_UP
                     return true
