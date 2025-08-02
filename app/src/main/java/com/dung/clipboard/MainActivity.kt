@@ -50,9 +50,13 @@ class MainActivity : AppCompatActivity() {
 
         clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
 
-        // Đăng ký BroadcastReceiver
+        // Đăng ký BroadcastReceiver an toàn cho mọi phiên bản Android
         val filter = IntentFilter("com.dung.clipboard.ACTION_UPDATE_UI")
-        registerReceiver(updateUIReceiver, filter, RECEIVER_EXPORTED)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            registerReceiver(updateUIReceiver, filter, RECEIVER_EXPORTED)
+        } else {
+            registerReceiver(updateUIReceiver, filter)
+        }
         
         binding.toggleServiceButton.setOnClickListener {
             if (isServiceRunning) {
