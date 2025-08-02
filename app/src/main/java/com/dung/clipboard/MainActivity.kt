@@ -56,7 +56,7 @@ class MainActivity : AppCompatActivity() {
                 Log.d("MainActivity", "Toggle service: Starting service")
             }
         }
-
+        
         updateUI()
     }
 
@@ -115,6 +115,16 @@ class MainActivity : AppCompatActivity() {
         stopService(serviceIntent)
         isServiceRunning = false
         updateToggleButtonText()
+    }
+
+    private fun updateToggleButtonText() {
+        if (isServiceRunning) {
+            binding.toggleServiceButton.text = "Tắt Clipboard Nổi"
+            binding.toggleServiceButton.setBackgroundColor(Color.RED)
+        } else {
+            binding.toggleServiceButton.text = "Bật Clipboard Nổi"
+            binding.toggleServiceButton.setBackgroundColor(Color.GREEN)
+        }
     }
 
     private fun isMyServiceRunning(serviceClass: Class<*>): Boolean {
