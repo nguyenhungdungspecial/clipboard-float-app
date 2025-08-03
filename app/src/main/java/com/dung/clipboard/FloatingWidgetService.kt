@@ -69,6 +69,7 @@ class FloatingWidgetService : Service() {
             .setOngoing(true)
             .build()
 
+        // Khởi động service ở chế độ foreground
         startForeground(NOTIFICATION_ID, notification)
 
         floatingWidget.show()

@@ -45,7 +45,6 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         Log.d("MainActivity", "onCreate: Activity created")
-        // Đảm bảo ClipboardDataManager được khởi tạo và tải dữ liệu mới nhất
         ClipboardDataManager.initialize(this)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
@@ -58,9 +57,6 @@ class MainActivity : AppCompatActivity() {
         } else {
             registerReceiver(updateUIReceiver, filter)
         }
-        
-        // Thêm log để kiểm tra nút có được tìm thấy không
-        Log.d("MainActivity", "Clear all button: ${binding.clearAllButton}")
 
         binding.toggleServiceButton.setOnClickListener {
             if (isServiceRunning) {
@@ -75,7 +71,8 @@ class MainActivity : AppCompatActivity() {
             showConfirmClearDialog()
         }
 
-        updateUI() // Gọi updateUI ngay sau khi onCreate để hiển thị dữ liệu đã lưu
+        // Cập nhật UI ngay khi Activity được tạo để hiển thị dữ liệu đã lưu
+        updateUI()
     }
 
     override fun onResume() {
@@ -128,7 +125,12 @@ class MainActivity : AppCompatActivity() {
             Toast.makeText(this, "Vui lòng cấp quyền vẽ đè lên ứng dụng khác", Toast.LENGTH_LONG).show()
         } else {
             val serviceIntent = Intent(this, FloatingWidgetService::class.java)
-            startService(serviceIntent)
+            // Sử dụng startForegroundService để đảm bảo service chạy ở chế độ foreground
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                startForegroundService(serviceIntent)
+            } else {
+                startService(serviceIntent)
+            }
             isServiceRunning = true
             updateToggleButtonText()
             Toast.makeText(this, "Đã bật Clipboard Nổi", Toast.LENGTH_SHORT).show()
