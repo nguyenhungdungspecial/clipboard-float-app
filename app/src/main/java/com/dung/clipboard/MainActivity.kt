@@ -16,6 +16,7 @@ import android.view.Gravity
 import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Button
 import android.widget.EditText
 import android.widget.ImageView
 import android.widget.LinearLayout
@@ -44,13 +45,13 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         Log.d("MainActivity", "onCreate: Activity created")
+        // Đảm bảo ClipboardDataManager được khởi tạo và tải dữ liệu mới nhất
         ClipboardDataManager.initialize(this)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
         clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
 
-        // Đăng ký BroadcastReceiver an toàn cho mọi phiên bản Android
         val filter = IntentFilter("com.dung.clipboard.ACTION_UPDATE_UI")
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             registerReceiver(updateUIReceiver, filter, RECEIVER_EXPORTED)
@@ -58,6 +59,9 @@ class MainActivity : AppCompatActivity() {
             registerReceiver(updateUIReceiver, filter)
         }
         
+        // Thêm log để kiểm tra nút có được tìm thấy không
+        Log.d("MainActivity", "Clear all button: ${binding.clearAllButton}")
+
         binding.toggleServiceButton.setOnClickListener {
             if (isServiceRunning) {
                 stopFloatingWidgetService()
@@ -66,22 +70,22 @@ class MainActivity : AppCompatActivity() {
                 startFloatingWidgetService()
             }
         }
-
+        
         binding.clearAllButton.setOnClickListener {
             showConfirmClearDialog()
         }
+
+        updateUI() // Gọi updateUI ngay sau khi onCreate để hiển thị dữ liệu đã lưu
     }
 
     override fun onResume() {
         super.onResume()
         Log.d("MainActivity", "onResume: Activity resumed, forcing UI update.")
-        // Tải lại dữ liệu và cập nhật giao diện mỗi khi Activity hiển thị
         updateUI()
     }
 
     override fun onDestroy() {
         super.onDestroy()
-        // Hủy đăng ký BroadcastReceiver khi Activity bị hủy
         unregisterReceiver(updateUIReceiver)
         Log.d("MainActivity", "onDestroy: Receiver unregistered.")
     }
@@ -141,10 +145,10 @@ class MainActivity : AppCompatActivity() {
     private fun updateToggleButtonText() {
         if (isServiceRunning) {
             binding.toggleServiceButton.text = "Tắt Clipboard Nổi"
-            binding.toggleServiceButton.setBackgroundColor(Color.RED)
+            (binding.toggleServiceButton as? Button)?.setBackgroundColor(Color.RED)
         } else {
             binding.toggleServiceButton.text = "Bật Clipboard Nổi"
-            binding.toggleServiceButton.setBackgroundColor(Color.GREEN)
+            (binding.toggleServiceButton as? Button)?.setBackgroundColor(Color.GREEN)
         }
     }
 

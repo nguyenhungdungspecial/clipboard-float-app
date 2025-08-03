@@ -25,16 +25,13 @@ class FloatingWidgetService : Service() {
         val clipText = clipboardManager.primaryClip?.getItemAt(0)?.text?.toString()
         if (!clipText.isNullOrBlank()) {
             Log.d("FloatingWidgetService", "New clip text: $clipText")
-            // Thêm dữ liệu vào ClipboardDataManager
             if (!ClipboardDataManager.getPinnedList().contains(clipText)) {
                 ClipboardDataManager.addCopy(clipText)
                 Log.d("FloatingWidgetService", "Added clip to data manager.")
 
-                // Gửi broadcast để MainActivity cập nhật giao diện
                 val updateIntent = Intent("com.dung.clipboard.ACTION_UPDATE_UI")
                 sendBroadcast(updateIntent)
                 Log.d("FloatingWidgetService", "Sent broadcast to update UI.")
-
             } else {
                  Log.d("FloatingWidgetService", "Clip text is already pinned, not adding to copied list.")
             }
