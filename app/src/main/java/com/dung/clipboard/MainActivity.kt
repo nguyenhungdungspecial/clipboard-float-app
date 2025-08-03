@@ -1,8 +1,10 @@
 package com.dung.clipboard
 
+import android.content.BroadcastReceiver
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.graphics.Color
 import android.net.Uri
 import android.os.Build
@@ -30,23 +32,32 @@ class MainActivity : AppCompatActivity() {
     private var selectedText: String? = null
     private var selectedIsPinned: Boolean = false
 
+    private val updateUIReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            if (intent?.action == "com.dung.clipboard.ACTION_UPDATE_UI") {
+                Log.d("MainActivity", "Received broadcast to update UI. Forcing UI update.")
+                updateUI()
+            }
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         Log.d("MainActivity", "onCreate: Activity created")
-        // Khởi tạo ClipboardDataManager ở đây
         ClipboardDataManager.initialize(this)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
         clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
 
-        // Xử lý khi ứng dụng được mở từ FloatingWidget
-        if (intent?.action == "com.dung.clipboard.ACTION_TOGGLE_UI") {
-            Log.d("MainActivity", "Received toggle action. Finishing activity.")
-            finish()
-            return
+        // Đăng ký BroadcastReceiver an toàn cho mọi phiên bản Android
+        val filter = IntentFilter("com.dung.clipboard.ACTION_UPDATE_UI")
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            registerReceiver(updateUIReceiver, filter, RECEIVER_EXPORTED)
+        } else {
+            registerReceiver(updateUIReceiver, filter)
         }
-
+        
         binding.toggleServiceButton.setOnClickListener {
             if (isServiceRunning) {
                 stopFloatingWidgetService()
@@ -54,6 +65,10 @@ class MainActivity : AppCompatActivity() {
             } else {
                 startFloatingWidgetService()
             }
+        }
+
+        binding.clearAllButton.setOnClickListener {
+            showConfirmClearDialog()
         }
     }
 
@@ -64,6 +79,13 @@ class MainActivity : AppCompatActivity() {
         updateUI()
     }
 
+    override fun onDestroy() {
+        super.onDestroy()
+        // Hủy đăng ký BroadcastReceiver khi Activity bị hủy
+        unregisterReceiver(updateUIReceiver)
+        Log.d("MainActivity", "onDestroy: Receiver unregistered.")
+    }
+
     override fun onNewIntent(intent: Intent?) {
         super.onNewIntent(intent)
         Log.d("MainActivity", "onNewIntent: Received new intent with action ${intent?.action}")
@@ -71,7 +93,6 @@ class MainActivity : AppCompatActivity() {
             Log.d("MainActivity", "Received toggle action, finishing activity.")
             finish()
         }
-        // Luôn cập nhật giao diện khi có intent mới
         updateUI()
     }
 
@@ -267,6 +288,22 @@ class MainActivity : AppCompatActivity() {
                 ClipboardDataManager.removeText(text, isPinned)
                 updateUI()
                 Toast.makeText(this, "Đã xóa", Toast.LENGTH_SHORT).show()
+                dialog.dismiss()
+            }
+            .setNegativeButton("Hủy") { dialog, _ ->
+                dialog.cancel()
+            }
+            .show()
+    }
+
+    private fun showConfirmClearDialog() {
+        AlertDialog.Builder(this)
+            .setTitle("Xác nhận xóa tất cả")
+            .setMessage("Bạn có chắc chắn muốn xóa tất cả các mục đã sao chép và đã ghim không?")
+            .setPositiveButton("Xóa tất cả") { dialog, _ ->
+                ClipboardDataManager.clearAllData()
+                updateUI()
+                Toast.makeText(this, "Đã xóa tất cả dữ liệu", Toast.LENGTH_SHORT).show()
                 dialog.dismiss()
             }
             .setNegativeButton("Hủy") { dialog, _ ->
