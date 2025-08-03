@@ -63,13 +63,10 @@ object ClipboardDataManager {
                 Log.d("ClipboardDataManager", "addCopy: '$text' is already pinned, not adding to copied list.")
                 return
             }
-            // Xóa mục cũ nếu nó đã tồn tại
             if (copiedList.contains(text)) {
                 copiedList.remove(text)
             }
-            // Thêm mục mới lên đầu danh sách
             copiedList.add(0, text)
-            // Giới hạn danh sách chỉ 20 mục
             if (copiedList.size > 20) {
                 copiedList.removeLast()
             }
@@ -85,7 +82,6 @@ object ClipboardDataManager {
 
     fun pinText(text: String) {
         if (!pinnedList.contains(text)) {
-            // Xóa khỏi danh sách copy trước khi ghim
             copiedList.remove(text)
             pinnedList.add(0, text)
             saveData()
@@ -96,10 +92,8 @@ object ClipboardDataManager {
     fun unpinText(text: String) {
         if (pinnedList.contains(text)) {
             pinnedList.remove(text)
-            // Thêm lại vào danh sách đã copy nếu nó chưa tồn tại ở đó
             if (!copiedList.contains(text)) {
                 copiedList.add(0, text)
-                // Đảm bảo danh sách không vượt quá giới hạn
                 if (copiedList.size > 20) {
                     copiedList.removeLast()
                 }
@@ -133,6 +127,13 @@ object ClipboardDataManager {
         }
         saveData()
         Log.d("ClipboardDataManager", "editText: Edited from '$oldText' to '$newText'. Is pinned: $isPinned")
+    }
+
+    fun clearAllData() {
+        copiedList.clear()
+        pinnedList.clear()
+        saveData()
+        Log.d("ClipboardDataManager", "clearAllData: All data cleared.")
     }
 }
 
