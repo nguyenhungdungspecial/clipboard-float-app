@@ -9,7 +9,6 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.os.IBinder
-import android.util.Log
 import androidx.core.app.NotificationCompat
 
 class FloatingWidgetService : Service() {
@@ -21,37 +20,38 @@ class FloatingWidgetService : Service() {
     private lateinit var clipboardManager: ClipboardManager
 
     private val primaryClipChangedListener = ClipboardManager.OnPrimaryClipChangedListener {
-        Log.d("FloatingWidgetService", "Clipboard changed detected!")
+        FileLogger.log("FloatingWidgetService", "Clipboard changed detected!")
         val clipText = clipboardManager.primaryClip?.getItemAt(0)?.text?.toString()
         if (!clipText.isNullOrBlank()) {
-            Log.d("FloatingWidgetService", "New clip text: $clipText")
+            FileLogger.log("FloatingWidgetService", "New clip text: $clipText")
             if (!ClipboardDataManager.getPinnedList().contains(clipText)) {
                 ClipboardDataManager.addCopy(clipText)
-                Log.d("FloatingWidgetService", "Added clip to data manager.")
+                FileLogger.log("FloatingWidgetService", "Added clip to data manager.")
 
                 val updateIntent = Intent("com.dung.clipboard.ACTION_UPDATE_UI")
                 sendBroadcast(updateIntent)
-                Log.d("FloatingWidgetService", "Sent broadcast to update UI.")
+                FileLogger.log("FloatingWidgetService", "Sent broadcast to update UI.")
             } else {
-                 Log.d("FloatingWidgetService", "Clip text is already pinned, not adding to copied list.")
+                 FileLogger.log("FloatingWidgetService", "Clip text is already pinned, not adding to copied list.")
             }
         } else {
-            Log.d("FloatingWidgetService", "Clip text is null or blank.")
+            FileLogger.log("FloatingWidgetService", "Clip text is null or blank.")
         }
     }
 
     override fun onCreate() {
         super.onCreate()
-        Log.d("FloatingWidgetService", "onCreate: Service created")
+        FileLogger.initialize(this)
+        FileLogger.log("FloatingWidgetService", "onCreate: Service created")
         ClipboardDataManager.initialize(this)
         floatingWidget = FloatingWidget(this)
         clipboardManager = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
         clipboardManager.addPrimaryClipChangedListener(primaryClipChangedListener)
-        Log.d("FloatingWidgetService", "onPrimaryClipChangedListener registered.")
+        FileLogger.log("FloatingWidgetService", "onPrimaryClipChangedListener registered.")
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        Log.d("FloatingWidgetService", "onStartCommand: Service started")
+        FileLogger.log("FloatingWidgetService", "onStartCommand: Service started")
         createNotificationChannel()
 
         val notificationIntent = Intent(this, MainActivity::class.java)
@@ -70,7 +70,6 @@ class FloatingWidgetService : Service() {
             .setOngoing(true)
             .build()
 
-        // Khởi động service ở chế độ foreground
         startForeground(NOTIFICATION_ID, notification)
 
         floatingWidget.show()
@@ -80,10 +79,10 @@ class FloatingWidgetService : Service() {
 
     override fun onDestroy() {
         super.onDestroy()
-        Log.d("FloatingWidgetService", "onDestroy: Service destroyed")
+        FileLogger.log("FloatingWidgetService", "onDestroy: Service destroyed")
         floatingWidget.remove()
         clipboardManager.removePrimaryClipChangedListener(primaryClipChangedListener)
-        Log.d("FloatingWidgetService", "onPrimaryClipChangedListener unregistered.")
+        FileLogger.log("FloatingWidgetService", "onPrimaryClipChangedListener unregistered.")
     }
 
     override fun onBind(intent: Intent?): IBinder? {
@@ -99,7 +98,7 @@ class FloatingWidgetService : Service() {
             )
             val manager = getSystemService(NotificationManager::class.java)
             manager.createNotificationChannel(serviceChannel)
-            Log.d("FloatingWidgetService", "Notification Channel created")
+            FileLogger.log("FloatingWidgetService", "Notification Channel created")
         }
     }
 }

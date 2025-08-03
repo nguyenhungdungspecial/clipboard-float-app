@@ -10,7 +10,6 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
-import android.util.Log
 import android.view.ContextMenu
 import android.view.Gravity
 import android.view.MenuItem
@@ -35,7 +34,7 @@ class MainActivity : AppCompatActivity() {
     private val updateUIReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
             if (intent?.action == "com.dung.clipboard.ACTION_UPDATE_UI") {
-                Log.d("MainActivity", "Received broadcast to update UI. Forcing UI update.")
+                FileLogger.log("MainActivity", "Received broadcast to update UI. Forcing UI update.")
                 updateUI()
             }
         }
@@ -43,7 +42,8 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        Log.d("MainActivity", "onCreate: Activity created")
+        FileLogger.initialize(this)
+        FileLogger.log("MainActivity", "onCreate: Activity created")
         ClipboardDataManager.initialize(this)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
@@ -58,16 +58,16 @@ class MainActivity : AppCompatActivity() {
         }
 
         binding.toggleServiceButton.setOnClickListener {
-            Log.d("MainActivity", "Toggle service button clicked.")
+            FileLogger.log("MainActivity", "Toggle service button clicked.")
             if (isMyServiceRunning(FloatingWidgetService::class.java)) {
-                Log.d("MainActivity", "Service is running, stopping it.")
+                FileLogger.log("MainActivity", "Service is running, stopping it.")
                 stopFloatingWidgetService()
                 Toast.makeText(this, "Đã tắt Clipboard Nổi", Toast.LENGTH_SHORT).show()
             } else {
-                Log.d("MainActivity", "Service is not running, starting it.")
+                FileLogger.log("MainActivity", "Service is not running, starting it.")
                 startFloatingWidgetService()
             }
-            updateToggleButtonText() // Cập nhật nút ngay sau khi bấm
+            updateToggleButtonText()
         }
 
         binding.clearAllButton.setOnClickListener {
@@ -80,34 +80,34 @@ class MainActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-        Log.d("MainActivity", "onResume: Activity resumed, forcing UI update.")
+        FileLogger.log("MainActivity", "onResume: Activity resumed, forcing UI update.")
         updateUI()
     }
 
     override fun onDestroy() {
         super.onDestroy()
         unregisterReceiver(updateUIReceiver)
-        Log.d("MainActivity", "onDestroy: Receiver unregistered.")
+        FileLogger.log("MainActivity", "onDestroy: Receiver unregistered.")
     }
 
     override fun onNewIntent(intent: Intent?) {
         super.onNewIntent(intent)
-        Log.d("MainActivity", "onNewIntent: Received new intent with action ${intent?.action}")
+        FileLogger.log("MainActivity", "onNewIntent: Received new intent with action ${intent?.action}")
         if (intent?.action == "com.dung.clipboard.ACTION_TOGGLE_UI") {
-            Log.d("MainActivity", "Received toggle action, finishing activity.")
+            FileLogger.log("MainActivity", "Received toggle action, finishing activity.")
             finish()
         }
         updateUI()
     }
 
     private fun updateUI() {
-        Log.d("MainActivity", "updateUI: Refreshing UI elements")
+        FileLogger.log("MainActivity", "updateUI: Refreshing UI elements")
         addCopiedAndPinnedItems()
         updateToggleButtonText()
     }
 
     private fun addCopiedAndPinnedItems() {
-        Log.d("MainActivity", "addCopiedAndPinnedItems: Refreshing lists")
+        FileLogger.log("MainActivity", "addCopiedAndPinnedItems: Refreshing lists")
         binding.copiedLayout.removeViews(1, binding.copiedLayout.childCount - 1)
         binding.pinnedLayout.removeViews(1, binding.pinnedLayout.childCount - 1)
 
@@ -161,6 +161,7 @@ class MainActivity : AppCompatActivity() {
         return false
     }
 
+    // ... (Các hàm khác giữ nguyên)
     private fun createTextItem(text: String, isPinned: Boolean): LinearLayout {
         val container = LinearLayout(this).apply {
             layoutParams = LinearLayout.LayoutParams(
@@ -304,6 +305,7 @@ class MainActivity : AppCompatActivity() {
             .setTitle("Xác nhận xóa tất cả")
             .setMessage("Bạn có chắc chắn muốn xóa tất cả các mục đã sao chép và đã ghim không?")
             .setPositiveButton("Xóa tất cả") { dialog, _ ->
+                FileLogger.clearLogs() // Xóa cả log khi xóa dữ liệu
                 ClipboardDataManager.clearAllData()
                 updateUI()
                 Toast.makeText(this, "Đã xóa tất cả dữ liệu", Toast.LENGTH_SHORT).show()
