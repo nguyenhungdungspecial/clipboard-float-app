@@ -33,6 +33,7 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         Log.d("MainActivity", "onCreate: Activity created")
+        // Khởi tạo ClipboardDataManager ở đây
         ClipboardDataManager.initialize(this)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
@@ -70,6 +71,8 @@ class MainActivity : AppCompatActivity() {
             Log.d("MainActivity", "Received toggle action, finishing activity.")
             finish()
         }
+        // Luôn cập nhật giao diện khi có intent mới
+        updateUI()
     }
 
     private fun updateUI() {

@@ -29,7 +29,7 @@ object ClipboardDataManager {
     private fun loadData() {
         copiedList.clear()
         pinnedList.clear()
-        
+
         val copiedJson = sharedPreferences.getString(COPIED_LIST_KEY, null)
         if (copiedJson != null) {
             val type = object : TypeToken<MutableList<String>>() {}.type
@@ -63,10 +63,11 @@ object ClipboardDataManager {
                 Log.d("ClipboardDataManager", "addCopy: '$text' is already pinned, not adding to copied list.")
                 return
             }
+            // Xóa mục cũ nếu nó đã tồn tại
             if (copiedList.contains(text)) {
-                // Đưa mục đã tồn tại lên đầu danh sách
                 copiedList.remove(text)
             }
+            // Thêm mục mới lên đầu danh sách
             copiedList.add(0, text)
             // Giới hạn danh sách chỉ 20 mục
             if (copiedList.size > 20) {
