@@ -58,16 +58,24 @@ object ClipboardDataManager {
     }
 
     fun addCopy(text: String) {
-        if (text.isNotBlank() && !copiedList.contains(text) && !pinnedList.contains(text)) {
-            // Giới hạn danh sách chỉ 20 mục
-            if (copiedList.size >= 20) {
-                copiedList.removeLast()
+        if (text.isNotBlank()) {
+            if (pinnedList.contains(text)) {
+                Log.d("ClipboardDataManager", "addCopy: '$text' is already pinned, not adding to copied list.")
+                return
+            }
+            if (copiedList.contains(text)) {
+                // Đưa mục đã tồn tại lên đầu danh sách
+                copiedList.remove(text)
             }
             copiedList.add(0, text)
+            // Giới hạn danh sách chỉ 20 mục
+            if (copiedList.size > 20) {
+                copiedList.removeLast()
+            }
             saveData()
             Log.d("ClipboardDataManager", "addCopy: Added '$text'. New copied size: ${copiedList.size}")
         } else {
-            Log.d("ClipboardDataManager", "addCopy: Did not add '$text' (blank, duplicate, or pinned).")
+            Log.d("ClipboardDataManager", "addCopy: Did not add '$text' (blank).")
         }
     }
 
@@ -76,10 +84,8 @@ object ClipboardDataManager {
 
     fun pinText(text: String) {
         if (!pinnedList.contains(text)) {
-            // Kiểm tra xem mục có tồn tại trong copiedList trước khi ghim không
-            if (copiedList.contains(text)) {
-                copiedList.remove(text)
-            }
+            // Xóa khỏi danh sách copy trước khi ghim
+            copiedList.remove(text)
             pinnedList.add(0, text)
             saveData()
             Log.d("ClipboardDataManager", "pinText: Pinned '$text'.")

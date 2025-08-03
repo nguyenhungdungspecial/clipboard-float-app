@@ -1,10 +1,8 @@
 package com.dung.clipboard
 
-import android.content.BroadcastReceiver
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
-import android.content.IntentFilter
 import android.graphics.Color
 import android.net.Uri
 import android.os.Build
@@ -32,15 +30,6 @@ class MainActivity : AppCompatActivity() {
     private var selectedText: String? = null
     private var selectedIsPinned: Boolean = false
 
-    private val updateUIReceiver = object : BroadcastReceiver() {
-        override fun onReceive(context: Context?, intent: Intent?) {
-            if (intent?.action == "com.dung.clipboard.ACTION_UPDATE_UI") {
-                Log.d("MainActivity", "Received broadcast to update UI.")
-                updateUI()
-            }
-        }
-    }
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         Log.d("MainActivity", "onCreate: Activity created")
@@ -50,14 +39,13 @@ class MainActivity : AppCompatActivity() {
 
         clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
 
-        // Đăng ký BroadcastReceiver an toàn cho mọi phiên bản Android
-        val filter = IntentFilter("com.dung.clipboard.ACTION_UPDATE_UI")
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            registerReceiver(updateUIReceiver, filter, RECEIVER_EXPORTED)
-        } else {
-            registerReceiver(updateUIReceiver, filter)
+        // Xử lý khi ứng dụng được mở từ FloatingWidget
+        if (intent?.action == "com.dung.clipboard.ACTION_TOGGLE_UI") {
+            Log.d("MainActivity", "Received toggle action. Finishing activity.")
+            finish()
+            return
         }
-        
+
         binding.toggleServiceButton.setOnClickListener {
             if (isServiceRunning) {
                 stopFloatingWidgetService()
@@ -70,16 +58,9 @@ class MainActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-        Log.d("MainActivity", "onResume: Activity resumed, updating UI...")
-        // Tải lại dữ liệu mỗi khi Activity hiển thị
-        ClipboardDataManager.initialize(this)
+        Log.d("MainActivity", "onResume: Activity resumed, forcing UI update.")
+        // Tải lại dữ liệu và cập nhật giao diện mỗi khi Activity hiển thị
         updateUI()
-    }
-    
-    override fun onDestroy() {
-        super.onDestroy()
-        // Hủy đăng ký BroadcastReceiver khi Activity bị hủy
-        unregisterReceiver(updateUIReceiver)
     }
 
     override fun onNewIntent(intent: Intent?) {
@@ -103,7 +84,6 @@ class MainActivity : AppCompatActivity() {
         binding.copiedLayout.removeViews(1, binding.copiedLayout.childCount - 1)
         binding.pinnedLayout.removeViews(1, binding.pinnedLayout.childCount - 1)
 
-        // Lấy danh sách đã copy và giới hạn 10 mục
         ClipboardDataManager.getCopiedList().take(10).forEach { text ->
             binding.copiedLayout.addView(createTextItem(text, false))
         }
@@ -178,7 +158,7 @@ class MainActivity : AppCompatActivity() {
             textSize = 16f
             setTextColor(Color.BLACK)
             setPadding(0, 0, 16, 0)
-            maxLines = 2 // Giới hạn 2 dòng
+            maxLines = 2
             setOnClickListener {
                 clipboard.setPrimaryClip(android.content.ClipData.newPlainText("Copied Text", text))
                 Toast.makeText(this@MainActivity, "Đã sao chép: $text", Toast.LENGTH_SHORT).show()
@@ -202,14 +182,11 @@ class MainActivity : AppCompatActivity() {
             setOnClickListener {
                 if (isPinned) {
                     ClipboardDataManager.unpinText(text)
-                    // Sau khi bỏ ghim, thêm lại vào danh sách đã copy
-                    ClipboardDataManager.addCopy(text)
-                    Toast.makeText(this@MainActivity, "Đã bỏ ghim", Toast.LENGTH_SHORT).show()
                 } else {
                     ClipboardDataManager.pinText(text)
-                    Toast.makeText(this@MainActivity, "Đã ghim", Toast.LENGTH_SHORT).show()
                 }
                 updateUI()
+                Toast.makeText(this@MainActivity, if (isPinned) "Đã bỏ ghim" else "Đã ghim", Toast.LENGTH_SHORT).show()
             }
         }
 
