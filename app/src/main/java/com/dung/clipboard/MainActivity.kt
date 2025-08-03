@@ -28,7 +28,6 @@ import com.dung.clipboard.databinding.ActivityMainBinding
 
 class MainActivity : AppCompatActivity() {
     private lateinit var clipboard: ClipboardManager
-    private var isServiceRunning = false
     private lateinit var binding: ActivityMainBinding
     private var selectedText: String? = null
     private var selectedIsPinned: Boolean = false
@@ -59,14 +58,18 @@ class MainActivity : AppCompatActivity() {
         }
 
         binding.toggleServiceButton.setOnClickListener {
-            if (isServiceRunning) {
+            Log.d("MainActivity", "Toggle service button clicked.")
+            if (isMyServiceRunning(FloatingWidgetService::class.java)) {
+                Log.d("MainActivity", "Service is running, stopping it.")
                 stopFloatingWidgetService()
                 Toast.makeText(this, "Đã tắt Clipboard Nổi", Toast.LENGTH_SHORT).show()
             } else {
+                Log.d("MainActivity", "Service is not running, starting it.")
                 startFloatingWidgetService()
             }
+            updateToggleButtonText() // Cập nhật nút ngay sau khi bấm
         }
-        
+
         binding.clearAllButton.setOnClickListener {
             showConfirmClearDialog()
         }
@@ -100,7 +103,6 @@ class MainActivity : AppCompatActivity() {
     private fun updateUI() {
         Log.d("MainActivity", "updateUI: Refreshing UI elements")
         addCopiedAndPinnedItems()
-        isServiceRunning = isMyServiceRunning(FloatingWidgetService::class.java)
         updateToggleButtonText()
     }
 
@@ -125,14 +127,11 @@ class MainActivity : AppCompatActivity() {
             Toast.makeText(this, "Vui lòng cấp quyền vẽ đè lên ứng dụng khác", Toast.LENGTH_LONG).show()
         } else {
             val serviceIntent = Intent(this, FloatingWidgetService::class.java)
-            // Sử dụng startForegroundService để đảm bảo service chạy ở chế độ foreground
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 startForegroundService(serviceIntent)
             } else {
                 startService(serviceIntent)
             }
-            isServiceRunning = true
-            updateToggleButtonText()
             Toast.makeText(this, "Đã bật Clipboard Nổi", Toast.LENGTH_SHORT).show()
         }
     }
@@ -140,12 +139,10 @@ class MainActivity : AppCompatActivity() {
     private fun stopFloatingWidgetService() {
         val serviceIntent = Intent(this, FloatingWidgetService::class.java)
         stopService(serviceIntent)
-        isServiceRunning = false
-        updateToggleButtonText()
     }
 
     private fun updateToggleButtonText() {
-        if (isServiceRunning) {
+        if (isMyServiceRunning(FloatingWidgetService::class.java)) {
             binding.toggleServiceButton.text = "Tắt Clipboard Nổi"
             (binding.toggleServiceButton as? Button)?.setBackgroundColor(Color.RED)
         } else {

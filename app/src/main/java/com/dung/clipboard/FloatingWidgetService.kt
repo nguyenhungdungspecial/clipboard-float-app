@@ -47,6 +47,7 @@ class FloatingWidgetService : Service() {
         floatingWidget = FloatingWidget(this)
         clipboardManager = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
         clipboardManager.addPrimaryClipChangedListener(primaryClipChangedListener)
+        Log.d("FloatingWidgetService", "onPrimaryClipChangedListener registered.")
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -82,6 +83,7 @@ class FloatingWidgetService : Service() {
         Log.d("FloatingWidgetService", "onDestroy: Service destroyed")
         floatingWidget.remove()
         clipboardManager.removePrimaryClipChangedListener(primaryClipChangedListener)
+        Log.d("FloatingWidgetService", "onPrimaryClipChangedListener unregistered.")
     }
 
     override fun onBind(intent: Intent?): IBinder? {
