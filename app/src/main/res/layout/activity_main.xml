@@ -12,6 +12,14 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="Bật/Tắt Clipboard Nổi" />
+    
+    <Button
+        android:id="@+id/viewLogButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        bandroid:text="Xem Log"
+        android:layout_marginHorizontal="16dp"
+        android:layout_marginTop="8dp" />
 
     <Button
         android:id="@+id/clearAllButton"

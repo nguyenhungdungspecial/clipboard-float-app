@@ -24,6 +24,7 @@ import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import com.dung.clipboard.databinding.ActivityMainBinding
+import java.io.File
 
 class MainActivity : AppCompatActivity() {
     private lateinit var clipboard: ClipboardManager
@@ -74,7 +75,11 @@ class MainActivity : AppCompatActivity() {
             showConfirmClearDialog()
         }
 
-        // Cập nhật UI ngay khi Activity được tạo để hiển thị dữ liệu đã lưu
+        // Thêm nút xem log
+        binding.viewLogButton.setOnClickListener {
+            showLogDialog()
+        }
+
         updateUI()
     }
 
@@ -161,7 +166,6 @@ class MainActivity : AppCompatActivity() {
         return false
     }
 
-    // ... (Các hàm khác giữ nguyên)
     private fun createTextItem(text: String, isPinned: Boolean): LinearLayout {
         val container = LinearLayout(this).apply {
             layoutParams = LinearLayout.LayoutParams(
@@ -305,7 +309,7 @@ class MainActivity : AppCompatActivity() {
             .setTitle("Xác nhận xóa tất cả")
             .setMessage("Bạn có chắc chắn muốn xóa tất cả các mục đã sao chép và đã ghim không?")
             .setPositiveButton("Xóa tất cả") { dialog, _ ->
-                FileLogger.clearLogs() // Xóa cả log khi xóa dữ liệu
+                FileLogger.clearLogs()
                 ClipboardDataManager.clearAllData()
                 updateUI()
                 Toast.makeText(this, "Đã xóa tất cả dữ liệu", Toast.LENGTH_SHORT).show()
@@ -315,6 +319,29 @@ class MainActivity : AppCompatActivity() {
                 dialog.cancel()
             }
             .show()
+    }
+    
+    private fun showLogDialog() {
+        val logFile = File(filesDir, "app_log.txt")
+        if (logFile.exists()) {
+            val logContent = logFile.readText()
+            val logTextView = TextView(this).apply {
+                text = logContent
+                setPadding(30, 30, 30, 30)
+                textSize = 12f
+            }
+            AlertDialog.Builder(this)
+                .setTitle("Log của ứng dụng")
+                .setView(logTextView)
+                .setPositiveButton("Đóng", null)
+                .setNegativeButton("Xóa Log") { _, _ ->
+                    FileLogger.clearLogs()
+                    Toast.makeText(this, "Đã xóa file log", Toast.LENGTH_SHORT).show()
+                }
+                .show()
+        } else {
+            Toast.makeText(this, "Không tìm thấy file log", Toast.LENGTH_SHORT).show()
+        }
     }
 }
 
