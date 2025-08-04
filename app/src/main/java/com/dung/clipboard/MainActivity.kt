@@ -10,6 +10,7 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
+import android.util.Log
 import android.view.ContextMenu
 import android.view.Gravity
 import android.view.MenuItem
@@ -65,33 +66,35 @@ class MainActivity : AppCompatActivity() {
             registerReceiver(updateUIReceiver, filter)
         }
 
-        Toast.makeText(this, "Toast 4.0.2: Đang gán listener cho toggleServiceButton", Toast.LENGTH_SHORT).show()
-        binding.toggleServiceButton.setOnClickListener {
-            fileLogger.log("MainActivity", "Toggle service button clicked.")
-            if (isMyServiceRunning(FloatingWidgetService::class.java)) {
-                fileLogger.log("MainActivity", "Service is running, stopping it.")
-                stopFloatingWidgetService()
-                Toast.makeText(this, "Đã tắt Clipboard Nổi", Toast.LENGTH_SHORT).show()
-            } else {
-                fileLogger.log("MainActivity", "Service is not running, starting it.")
-                startFloatingWidgetService()
+        try {
+            Toast.makeText(this, "Toast 4.0.1: Bắt đầu gán listener", Toast.LENGTH_SHORT).show()
+            binding.toggleServiceButton.setOnClickListener {
+                fileLogger.log("MainActivity", "Toggle service button clicked.")
+                if (isMyServiceRunning(FloatingWidgetService::class.java)) {
+                    fileLogger.log("MainActivity", "Service is running, stopping it.")
+                    stopFloatingWidgetService()
+                    Toast.makeText(this, "Đã tắt Clipboard Nổi", Toast.LENGTH_SHORT).show()
+                } else {
+                    fileLogger.log("MainActivity", "Service is not running, starting it.")
+                    startFloatingWidgetService()
+                }
+                updateToggleButtonText()
             }
-            updateToggleButtonText()
-        }
+            binding.clearAllButton.setOnClickListener {
+                showConfirmClearDialog()
+            }
+            binding.viewLogButton.setOnClickListener {
+                showLogDialog()
+            }
+            Toast.makeText(this, "Toast 4.0.2: Kết thúc gán listener", Toast.LENGTH_SHORT).show()
 
-        Toast.makeText(this, "Toast 4.0.3: Đang gán listener cho clearAllButton", Toast.LENGTH_SHORT).show()
-        binding.clearAllButton.setOnClickListener {
-            showConfirmClearDialog()
-        }
+            updateUI()
+            Toast.makeText(this, "Toast 5: Kết thúc onCreate", Toast.LENGTH_SHORT).show()
 
-        Toast.makeText(this, "Toast 4.0.4: Đang gán listener cho viewLogButton", Toast.LENGTH_SHORT).show()
-        binding.viewLogButton.setOnClickListener {
-            showLogDialog()
+        } catch (e: Exception) {
+            Log.e("MainActivity", "Lỗi khi gán listener cho các view: ${e.message}", e)
+            Toast.makeText(this, "Lỗi: Không thể tìm thấy các nút bấm.", Toast.LENGTH_LONG).show()
         }
-        
-        Toast.makeText(this, "Toast 4.0.5: Tất cả listener đã được gán", Toast.LENGTH_SHORT).show()
-        updateUI()
-        Toast.makeText(this, "Toast 5: Kết thúc onCreate", Toast.LENGTH_SHORT).show()
     }
 
     override fun onResume() {
