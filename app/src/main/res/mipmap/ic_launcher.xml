@@ -1,0 +1,3 @@
+<launcher-icon xmlns:android="http://schemas.android.com/apk/res/android"
+    android:icon="@android:drawable/ic_menu_edit"/>
+
