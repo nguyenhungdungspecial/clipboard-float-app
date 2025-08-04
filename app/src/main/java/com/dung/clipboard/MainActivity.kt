@@ -30,7 +30,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
     private var selectedText: String? = null
     private var selectedIsPinned: Boolean = false
-    private lateinit var fileLogger: FileLogger // Thay đổi ở đây
+    private lateinit var fileLogger: FileLogger
 
     private val updateUIReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
@@ -43,11 +43,18 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        fileLogger = FileLogger(this) // Thay đổi ở đây
+        Toast.makeText(this, "Toast 1: Bắt đầu onCreate", Toast.LENGTH_SHORT).show()
+
+        fileLogger = FileLogger(this)
         fileLogger.log("MainActivity", "onCreate: Activity created")
+        Toast.makeText(this, "Toast 2: Đã khởi tạo FileLogger", Toast.LENGTH_SHORT).show()
+
         ClipboardDataManager.initialize(this)
+        Toast.makeText(this, "Toast 3: Đã khởi tạo ClipboardDataManager", Toast.LENGTH_SHORT).show()
+
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        Toast.makeText(this, "Toast 4: Đã thiết lập giao diện", Toast.LENGTH_SHORT).show()
 
         clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
 
@@ -80,6 +87,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         updateUI()
+        Toast.makeText(this, "Toast 5: Kết thúc onCreate", Toast.LENGTH_SHORT).show()
     }
 
     override fun onResume() {
