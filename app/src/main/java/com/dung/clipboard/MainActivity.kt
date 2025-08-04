@@ -261,5 +261,102 @@ class MainActivity : AppCompatActivity() {
 
         return container
     }
+
+    override fun onCreateContextMenu(menu: ContextMenu?, v: View?, menuInfo: ContextMenu.ContextMenuInfo?) {
+        super.onCreateContextMenu(menu, v, menuInfo)
+        menuInflater.inflate(R.menu.context_menu, menu)
+    }
+
+    override fun onContextItemSelected(item: MenuItem): Boolean {
+        return when (item.itemId) {
+            R.id.menu_edit -> {
+                selectedText?.let { text ->
+                    showEditDialog(text, selectedIsPinned)
+                }
+                true
+            }
+            R.id.menu_delete -> {
+                selectedText?.let { text ->
+                    showConfirmDeleteDialog(text, selectedIsPinned)
+                }
+                true
+            }
+            else -> super.onContextItemSelected(item)
+        }
+    }
+
+    private fun showEditDialog(oldText: String, isPinned: Boolean) {
+        val input = EditText(this)
+        input.setText(oldText)
+        AlertDialog.Builder(this)
+            .setTitle("Chỉnh sửa nội dung")
+            .setView(input)
+            .setPositiveButton("Lưu") { dialog, _ ->
+                val newText = input.text.toString()
+                if (newText.isNotBlank()) {
+                    ClipboardDataManager.editText(oldText, newText, isPinned)
+                    updateUI()
+                    Toast.makeText(this, "Đã lưu chỉnh sửa", Toast.LENGTH_SHORT).show()
+                } else {
+                    Toast.makeText(this, "Nội dung không được để trống", Toast.LENGTH_SHORT).show()
+                }
+                dialog.dismiss()
+            }
+            .setNegativeButton("Hủy") { dialog, _ ->
+                dialog.cancel()
+            }
+            .show()
+    }
+
+    private fun showConfirmDeleteDialog(text: String, isPinned: Boolean) {
+        AlertDialog.Builder(this)
+            .setTitle("Xác nhận xóa")
+            .setMessage("Bạn có chắc chắn muốn xóa mục này không?\n\"$text\"")
+            .setPositiveButton("Xóa") { dialog, _ ->
+                ClipboardDataManager.removeText(text, isPinned)
+                updateUI()
+                Toast.makeText(this, "Đã xóa", Toast.LENGTH_SHORT).show()
+                dialog.dismiss()
+            }
+            .setNegativeButton("Hủy") { dialog, _ ->
+                dialog.cancel()
+            }
+            .show()
+    }
+
+    private fun showConfirmClearDialog() {
+        AlertDialog.Builder(this)
+            .setTitle("Xác nhận xóa tất cả")
+            .setMessage("Bạn có chắc chắn muốn xóa tất cả các mục đã sao chép và đã ghim không?")
+            .setPositiveButton("Xóa tất cả") { dialog, _ ->
+                fileLogger.clearLogs()
+                ClipboardDataManager.clearAllData()
+                updateUI()
+                Toast.makeText(this, "Đã xóa tất cả dữ liệu", Toast.LENGTH_SHORT).show()
+                dialog.dismiss()
+            }
+            .setNegativeButton("Hủy") { dialog, _ ->
+                dialog.cancel()
+            }
+            .show()
+    }
+
+    private fun showLogDialog() {
+        val logContent = fileLogger.getLogs()
+        val logTextView = TextView(this).apply {
+            text = logContent
+            setPadding(30, 30, 30, 30)
+            textSize = 12f
+        }
+        AlertDialog.Builder(this)
+            .setTitle("Log của ứng dụng")
+            .setView(logTextView)
+            .setPositiveButton("Đóng", null)
+            .setNegativeButton("Xóa Log") { _, _ ->
+                fileLogger.clearLogs()
+                Toast.makeText(this, "Đã xóa file log", Toast.LENGTH_SHORT).show()
+            }
+            .show()
+    }
 }
 
