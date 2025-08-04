@@ -59,15 +59,17 @@ class MainActivity : AppCompatActivity() {
 
         clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
 
+        // TẠM THỜI XÓA BỎ KHỐI CODE SAU ĐỂ KIỂM TRA
+        /*
         val filter = IntentFilter("com.dung.clipboard.ACTION_UPDATE_UI")
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             registerReceiver(updateUIReceiver, filter, RECEIVER_EXPORTED)
         } else {
             registerReceiver(updateUIReceiver, filter)
         }
+        */
 
         try {
-            Toast.makeText(this, "Toast 4.0.1: Bắt đầu gán listener", Toast.LENGTH_SHORT).show()
             binding.toggleServiceButton.setOnClickListener {
                 fileLogger.log("MainActivity", "Toggle service button clicked.")
                 if (isMyServiceRunning(FloatingWidgetService::class.java)) {
@@ -86,15 +88,13 @@ class MainActivity : AppCompatActivity() {
             binding.viewLogButton.setOnClickListener {
                 showLogDialog()
             }
-            Toast.makeText(this, "Toast 4.0.2: Kết thúc gán listener", Toast.LENGTH_SHORT).show()
-
-            updateUI()
-            Toast.makeText(this, "Toast 5: Kết thúc onCreate", Toast.LENGTH_SHORT).show()
-
         } catch (e: Exception) {
             Log.e("MainActivity", "Lỗi khi gán listener cho các view: ${e.message}", e)
             Toast.makeText(this, "Lỗi: Không thể tìm thấy các nút bấm.", Toast.LENGTH_LONG).show()
         }
+
+        updateUI()
+        Toast.makeText(this, "Toast 5: Kết thúc onCreate", Toast.LENGTH_SHORT).show()
     }
 
     override fun onResume() {
@@ -105,7 +105,8 @@ class MainActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
-        unregisterReceiver(updateUIReceiver)
+        // Đảm bảo unregisterReceiver không được gọi nếu registerReceiver đã bị comment
+        // unregisterReceiver(updateUIReceiver)
         fileLogger.log("MainActivity", "onDestroy: Receiver unregistered.")
     }
 
