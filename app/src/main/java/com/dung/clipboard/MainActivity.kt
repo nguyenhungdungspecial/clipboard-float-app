@@ -65,6 +65,7 @@ class MainActivity : AppCompatActivity() {
             registerReceiver(updateUIReceiver, filter)
         }
 
+        Toast.makeText(this, "Toast 4.0.2: Đang gán listener cho toggleServiceButton", Toast.LENGTH_SHORT).show()
         binding.toggleServiceButton.setOnClickListener {
             fileLogger.log("MainActivity", "Toggle service button clicked.")
             if (isMyServiceRunning(FloatingWidgetService::class.java)) {
@@ -78,15 +79,17 @@ class MainActivity : AppCompatActivity() {
             updateToggleButtonText()
         }
 
+        Toast.makeText(this, "Toast 4.0.3: Đang gán listener cho clearAllButton", Toast.LENGTH_SHORT).show()
         binding.clearAllButton.setOnClickListener {
             showConfirmClearDialog()
         }
 
+        Toast.makeText(this, "Toast 4.0.4: Đang gán listener cho viewLogButton", Toast.LENGTH_SHORT).show()
         binding.viewLogButton.setOnClickListener {
             showLogDialog()
         }
         
-        Toast.makeText(this, "Toast 4.0.1: Sắp gọi updateUI()", Toast.LENGTH_SHORT).show()
+        Toast.makeText(this, "Toast 4.0.5: Tất cả listener đã được gán", Toast.LENGTH_SHORT).show()
         updateUI()
         Toast.makeText(this, "Toast 5: Kết thúc onCreate", Toast.LENGTH_SHORT).show()
     }
