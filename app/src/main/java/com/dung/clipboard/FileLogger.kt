@@ -7,17 +7,10 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-object FileLogger {
-    private lateinit var context: Context
-    private const val LOG_FILE_NAME = "app_log.txt"
-
-    fun initialize(context: Context) {
-        this.context = context
-    }
+class FileLogger(private val context: Context) {
+    private val LOG_FILE_NAME = "app_log.txt"
 
     fun log(tag: String, message: String) {
-        if (!::context.isInitialized) return
-
         val timestamp = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date())
         val logMessage = "$timestamp [$tag] $message\n"
 
@@ -27,13 +20,25 @@ object FileLogger {
                 writer.append(logMessage)
             }
         } catch (e: Exception) {
-            // Không thể ghi log vào file, có thể do lỗi quyền hạn hoặc IO
-            // Trong trường hợp này, không thể làm gì thêm, chỉ có thể bỏ qua
+            // Trong trường hợp không ghi được log, chúng ta sẽ bỏ qua để ứng dụng không crash
+            // và log lỗi ra một chỗ khác nếu có thể (nhưng với yêu cầu hiện tại thì không cần thiết)
         }
     }
     
+    fun getLogs(): String {
+        val logFile = File(context.filesDir, LOG_FILE_NAME)
+        return try {
+            if (logFile.exists()) {
+                logFile.readText()
+            } else {
+                "Không tìm thấy file log."
+            }
+        } catch (e: Exception) {
+            "Lỗi khi đọc file log: ${e.message}"
+        }
+    }
+
     fun clearLogs() {
-        if (!::context.isInitialized) return
         try {
             val logFile = File(context.filesDir, LOG_FILE_NAME)
             if (logFile.exists()) {
