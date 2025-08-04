@@ -85,7 +85,8 @@ class MainActivity : AppCompatActivity() {
         binding.viewLogButton.setOnClickListener {
             showLogDialog()
         }
-
+        
+        Toast.makeText(this, "Toast 4.0.1: Sắp gọi updateUI()", Toast.LENGTH_SHORT).show()
         updateUI()
         Toast.makeText(this, "Toast 5: Kết thúc onCreate", Toast.LENGTH_SHORT).show()
     }
