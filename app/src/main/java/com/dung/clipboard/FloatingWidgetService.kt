@@ -9,6 +9,7 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.os.IBinder
+import android.widget.Toast
 import androidx.core.app.NotificationCompat
 
 class FloatingWidgetService : Service() {
@@ -18,7 +19,7 @@ class FloatingWidgetService : Service() {
     private val NOTIFICATION_ID = 101
 
     private lateinit var clipboardManager: ClipboardManager
-    private lateinit var fileLogger: FileLogger // Thay đổi ở đây
+    private lateinit var fileLogger: FileLogger
 
     private val primaryClipChangedListener = ClipboardManager.OnPrimaryClipChangedListener {
         fileLogger.log("FloatingWidgetService", "Clipboard changed detected!")
@@ -42,7 +43,8 @@ class FloatingWidgetService : Service() {
 
     override fun onCreate() {
         super.onCreate()
-        fileLogger = FileLogger(this) // Thay đổi ở đây
+        Toast.makeText(this, "Service onCreate", Toast.LENGTH_SHORT).show()
+        fileLogger = FileLogger(this)
         fileLogger.log("FloatingWidgetService", "onCreate: Service created")
         ClipboardDataManager.initialize(this)
         floatingWidget = FloatingWidget(this)

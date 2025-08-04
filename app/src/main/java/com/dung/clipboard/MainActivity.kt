@@ -113,23 +113,36 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun updateUI() {
+        Toast.makeText(this, "Toast 4.1: Bắt đầu updateUI", Toast.LENGTH_SHORT).show()
         fileLogger.log("MainActivity", "updateUI: Refreshing UI elements")
         addCopiedAndPinnedItems()
         updateToggleButtonText()
+        Toast.makeText(this, "Toast 4.2: Kết thúc updateUI", Toast.LENGTH_SHORT).show()
     }
 
     private fun addCopiedAndPinnedItems() {
+        Toast.makeText(this, "Toast 4.1.1: Bắt đầu addCopiedAndPinnedItems", Toast.LENGTH_SHORT).show()
         fileLogger.log("MainActivity", "addCopiedAndPinnedItems: Refreshing lists")
         binding.copiedLayout.removeViews(1, binding.copiedLayout.childCount - 1)
         binding.pinnedLayout.removeViews(1, binding.pinnedLayout.childCount - 1)
 
-        ClipboardDataManager.getCopiedList().take(10).forEach { text ->
+        val copiedList = ClipboardDataManager.getCopiedList().take(10)
+        Toast.makeText(this, "Toast 4.1.2: Lấy copiedList thành công, số lượng: ${copiedList.size}", Toast.LENGTH_SHORT).show()
+
+        copiedList.forEachIndexed { index, text ->
+            Toast.makeText(this, "Toast 4.1.3: Đang xử lý item copied $index", Toast.LENGTH_SHORT).show()
             binding.copiedLayout.addView(createTextItem(text, false))
         }
 
-        ClipboardDataManager.getPinnedList().forEach { text ->
+        val pinnedList = ClipboardDataManager.getPinnedList()
+        Toast.makeText(this, "Toast 4.1.4: Lấy pinnedList thành công, số lượng: ${pinnedList.size}", Toast.LENGTH_SHORT).show()
+
+        pinnedList.forEachIndexed { index, text ->
+            Toast.makeText(this, "Toast 4.1.5: Đang xử lý item pinned $index", Toast.LENGTH_SHORT).show()
             binding.pinnedLayout.addView(createTextItem(text, true))
         }
+
+        Toast.makeText(this, "Toast 4.1.6: Kết thúc addCopiedAndPinnedItems", Toast.LENGTH_SHORT).show()
     }
 
     private fun startFloatingWidgetService() {
@@ -344,6 +357,82 @@ class MainActivity : AppCompatActivity() {
                 Toast.makeText(this, "Đã xóa file log", Toast.LENGTH_SHORT).show()
             }
             .show()
+    }
+
+    private fun createTextItem(text: String, isPinned: Boolean): LinearLayout {
+        val container = LinearLayout(this).apply {
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply {
+                setMargins(0, 0, 0, 8)
+            }
+            orientation = LinearLayout.HORIZONTAL
+            setBackgroundResource(R.drawable.item_background)
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(16, 16, 16, 16)
+        }
+
+        val textView = TextView(this).apply {
+            layoutParams = LinearLayout.LayoutParams(
+                0,
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                1f
+            )
+            this.text = text
+            textSize = 16f
+            setTextColor(Color.BLACK)
+            setPadding(0, 0, 16, 0)
+            maxLines = 2
+            setOnClickListener {
+                clipboard.setPrimaryClip(android.content.ClipData.newPlainText("Copied Text", text))
+                Toast.makeText(this@MainActivity, "Đã sao chép: $text", Toast.LENGTH_SHORT).show()
+            }
+            setOnLongClickListener {
+                selectedText = text
+                selectedIsPinned = isPinned
+                false
+            }
+        }
+        registerForContextMenu(textView)
+
+        val pinButton = ImageView(this).apply {
+            layoutParams = LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+            ).apply {
+                setMargins(8, 0, 8, 0)
+            }
+            setImageResource(if (isPinned) android.R.drawable.btn_star_big_on else android.R.drawable.btn_star_big_off)
+            setOnClickListener {
+                if (isPinned) {
+                    ClipboardDataManager.unpinText(text)
+                } else {
+                    ClipboardDataManager.pinText(text)
+                }
+                updateUI()
+                Toast.makeText(this@MainActivity, if (isPinned) "Đã bỏ ghim" else "Đã ghim", Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        val deleteButton = ImageView(this).apply {
+            layoutParams = LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+            ).apply {
+                setMargins(0, 0, 0, 0)
+            }
+            setImageResource(android.R.drawable.ic_delete)
+            setOnClickListener {
+                showConfirmDeleteDialog(text, isPinned)
+            }
+        }
+
+        container.addView(textView)
+        container.addView(pinButton)
+        container.addView(deleteButton)
+
+        return container
     }
 }
 
