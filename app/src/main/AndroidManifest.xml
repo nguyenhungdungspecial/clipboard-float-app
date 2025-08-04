@@ -18,7 +18,7 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.ClipboardFloatApp"
         tools:targetApi="31">
-        
+
         <activity
             android:name=".MainActivity"
             android:exported="true">
@@ -34,9 +34,9 @@
             android:exported="false"
             android:foregroundServiceType="specialUse"
             tools:targetApi="34" />
-        
+
         <receiver
-            android:name=".BootRceiver"
+            android:name=".BootReceiver"
             android:enabled="true"
             android:exported="true">
             <intent-filter>

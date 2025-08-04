@@ -44,30 +44,27 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        Toast.makeText(this, "Toast 1: Bắt đầu onCreate", Toast.LENGTH_SHORT).show()
+        // Toast.makeText(this, "Toast 1: Bắt đầu onCreate", Toast.LENGTH_SHORT).show()
 
         fileLogger = FileLogger(this)
         fileLogger.log("MainActivity", "onCreate: Activity created")
-        Toast.makeText(this, "Toast 2: Đã khởi tạo FileLogger", Toast.LENGTH_SHORT).show()
+        // Toast.makeText(this, "Toast 2: Đã khởi tạo FileLogger", Toast.LENGTH_SHORT).show()
 
         ClipboardDataManager.initialize(this)
-        Toast.makeText(this, "Toast 3: Đã khởi tạo ClipboardDataManager", Toast.LENGTH_SHORT).show()
+        // Toast.makeText(this, "Toast 3: Đã khởi tạo ClipboardDataManager", Toast.LENGTH_SHORT).show()
 
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
-        Toast.makeText(this, "Toast 4: Đã thiết lập giao diện", Toast.LENGTH_SHORT).show()
+        // Toast.makeText(this, "Toast 4: Đã thiết lập giao diện", Toast.LENGTH_SHORT).show()
 
         clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
 
-        // TẠM THỜI XÓA BỎ KHỐI CODE SAU ĐỂ KIỂM TRA
-        /*
         val filter = IntentFilter("com.dung.clipboard.ACTION_UPDATE_UI")
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             registerReceiver(updateUIReceiver, filter, RECEIVER_EXPORTED)
         } else {
             registerReceiver(updateUIReceiver, filter)
         }
-        */
 
         try {
             binding.toggleServiceButton.setOnClickListener {
@@ -94,7 +91,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         updateUI()
-        Toast.makeText(this, "Toast 5: Kết thúc onCreate", Toast.LENGTH_SHORT).show()
+        // Toast.makeText(this, "Toast 5: Kết thúc onCreate", Toast.LENGTH_SHORT).show()
     }
 
     override fun onResume() {
@@ -105,8 +102,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
-        // Đảm bảo unregisterReceiver không được gọi nếu registerReceiver đã bị comment
-        // unregisterReceiver(updateUIReceiver)
+        unregisterReceiver(updateUIReceiver)
         fileLogger.log("MainActivity", "onDestroy: Receiver unregistered.")
     }
 
@@ -121,36 +117,36 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun updateUI() {
-        Toast.makeText(this, "Toast 4.1: Bắt đầu updateUI", Toast.LENGTH_SHORT).show()
+        // Toast.makeText(this, "Toast 4.1: Bắt đầu updateUI", Toast.LENGTH_SHORT).show()
         fileLogger.log("MainActivity", "updateUI: Refreshing UI elements")
         addCopiedAndPinnedItems()
         updateToggleButtonText()
-        Toast.makeText(this, "Toast 4.2: Kết thúc updateUI", Toast.LENGTH_SHORT).show()
+        // Toast.makeText(this, "Toast 4.2: Kết thúc updateUI", Toast.LENGTH_SHORT).show()
     }
 
     private fun addCopiedAndPinnedItems() {
-        Toast.makeText(this, "Toast 4.1.1: Bắt đầu addCopiedAndPinnedItems", Toast.LENGTH_SHORT).show()
+        // Toast.makeText(this, "Toast 4.1.1: Bắt đầu addCopiedAndPinnedItems", Toast.LENGTH_SHORT).show()
         fileLogger.log("MainActivity", "addCopiedAndPinnedItems: Refreshing lists")
         binding.copiedLayout.removeViews(1, binding.copiedLayout.childCount - 1)
         binding.pinnedLayout.removeViews(1, binding.pinnedLayout.childCount - 1)
 
         val copiedList = ClipboardDataManager.getCopiedList().take(10)
-        Toast.makeText(this, "Toast 4.1.2: Lấy copiedList thành công, số lượng: ${copiedList.size}", Toast.LENGTH_SHORT).show()
+        // Toast.makeText(this, "Toast 4.1.2: Lấy copiedList thành công, số lượng: ${copiedList.size}", Toast.LENGTH_SHORT).show()
 
         copiedList.forEachIndexed { index, text ->
-            Toast.makeText(this, "Toast 4.1.3: Đang xử lý item copied $index", Toast.LENGTH_SHORT).show()
+            // Toast.makeText(this, "Toast 4.1.3: Đang xử lý item copied $index", Toast.LENGTH_SHORT).show()
             binding.copiedLayout.addView(createTextItem(text, false))
         }
 
         val pinnedList = ClipboardDataManager.getPinnedList()
-        Toast.makeText(this, "Toast 4.1.4: Lấy pinnedList thành công, số lượng: ${pinnedList.size}", Toast.LENGTH_SHORT).show()
+        // Toast.makeText(this, "Toast 4.1.4: Lấy pinnedList thành công, số lượng: ${pinnedList.size}", Toast.LENGTH_SHORT).show()
 
         pinnedList.forEachIndexed { index, text ->
-            Toast.makeText(this, "Toast 4.1.5: Đang xử lý item pinned $index", Toast.LENGTH_SHORT).show()
+            // Toast.makeText(this, "Toast 4.1.5: Đang xử lý item pinned $index", Toast.LENGTH_SHORT).show()
             binding.pinnedLayout.addView(createTextItem(text, true))
         }
 
-        Toast.makeText(this, "Toast 4.1.6: Kết thúc addCopiedAndPinnedItems", Toast.LENGTH_SHORT).show()
+        // Toast.makeText(this, "Toast 4.1.6: Kết thúc addCopiedAndPinnedItems", Toast.LENGTH_SHORT).show()
     }
 
     private fun startFloatingWidgetService() {
