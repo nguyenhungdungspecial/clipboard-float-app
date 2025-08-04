@@ -1,83 +1,124 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
-    android:id="@+id/mainLayout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical">
+    tools:context=".MainActivity">
 
-    <Button
-        android:id="@+id/toggleServiceButton"
+    <TextView
+        android:id="@+id/appTitle"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Bật/Tắt Clipboard Nổi" />
-    
-    <Button
-        android:id="@+id/viewLogButton"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        bandroid:text="Xem Log"
-        android:layout_marginHorizontal="16dp"
-        android:layout_marginTop="8dp" />
+        android:background="#f44336"
+        android:gravity="center"
+        android:padding="16dp"
+        android:text="TẮT CLIPBOARD NỔI"
+        android:textColor="@color/white"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"/>
 
-    <Button
-        android:id="@+id/clearAllButton"
+    <LinearLayout
+        android:id="@+id/headerLayout"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:backgroundTint="@android:color/holo_orange_dark"
-        android:text="Xóa tất cả dữ liệu"
-        android:textColor="@android:color/white" />
+        android:orientation="horizontal"
+        android:background="#f4f4f4"
+        android:padding="8dp"
+        app:layout_constraintTop_toBottomOf="@+id/appTitle">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:text="Đã copy"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:textColor="#3f51b5"/>
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:text="Đã ghim"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:textColor="#4caf50"/>
+    </LinearLayout>
 
     <LinearLayout
         android:id="@+id/contentLayout"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1"
         android:orientation="horizontal"
-        android:weightSum="2">
+        app:layout_constraintTop_toBottomOf="@+id/headerLayout"
+        app:layout_constraintBottom_toTopOf="@+id/controlLayout">
 
-        <LinearLayout
-            android:id="@+id/copiedLayout"
+        <ScrollView
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="1"
-            android:orientation="vertical">
+            android:background="#e3f2fd"
+            android:padding="8dp">
 
-            <TextView
+            <LinearLayout
+                android:id="@+id/copiedLayout"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:background="#B3E5FC"
-                android:padding="16dp"
-                android:text="Đã copy"
-                android:textSize="18sp" />
+                android:orientation="vertical"
+                android:paddingBottom="16dp"/>
+        </ScrollView>
 
-        </LinearLayout>
-
-        <View
-            android:layout_width="2dp"
-            android:layout_height="match_parent"
-            android:layout_marginStart="8dp"
-            android:layout_marginEnd="8dp"
-            android:background="#A9A9A9" />
-
-        <LinearLayout
-            android:id="@+id/pinnedLayout"
+        <ScrollView
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="1"
-            android:orientation="vertical">
+            android:background="#e8f5e9"
+            android:padding="8dp">
 
-            <TextView
+            <LinearLayout
+                android:id="@+id/pinnedLayout"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:background="#B2DFDB"
-                android:padding="16dp"
-                android:text="Đã ghim"
-                android:textSize="18sp" />
-
-        </LinearLayout>
+                android:orientation="vertical"
+                android:paddingBottom="16dp"/>
+        </ScrollView>
     </LinearLayout>
-</LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/controlLayout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="8dp"
+        app:layout_constraintBottom_toBottomOf="parent">
+
+        <Button
+            android:id="@+id/toggleServiceButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Bật Clipboard Nổi"
+            android:layout_marginBottom="8dp"/>
+
+        <Button
+            android:id="@+id/clearAllButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Xóa tất cả"
+            android:layout_marginBottom="8dp"/>
+            
+        <Button
+            android:id="@+id/viewLogButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Xem Log"
+            android:layout_marginBottom="8dp"/>
+
+    </LinearLayout>
+</androidx.constraintlayout.widget.ConstraintLayout>
 
