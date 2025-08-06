@@ -10,13 +10,12 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
+import android.text.TextUtils
 import android.util.Log
 import android.view.ContextMenu
-import android.view.Gravity
 import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
-import android.widget.Button
 import android.widget.EditText
 import android.widget.ImageView
 import android.widget.LinearLayout
@@ -24,19 +23,22 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.dung.clipboard.databinding.ActivityMainBinding
 
 class MainActivity : AppCompatActivity() {
+
     private lateinit var clipboard: ClipboardManager
+    private var isServiceRunning = false
     private lateinit var binding: ActivityMainBinding
     private var selectedText: String? = null
     private var selectedIsPinned: Boolean = false
-    private lateinit var fileLogger: FileLogger
 
-    private val updateUIReceiver = object : BroadcastReceiver() {
+    // Sửa: Thêm BroadcastReceiver để lắng nghe thông báo từ FloatingWidgetService
+    private val clipboardUpdateReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
-            if (intent?.action == "com.dung.clipboard.ACTION_UPDATE_UI") {
-                fileLogger.log("MainActivity", "Received broadcast to update UI. Forcing UI update.")
+            if (intent?.action == "com.dung.clipboard.CLIPBOARD_UPDATED") {
+                Log.d("MainActivity", "onReceive: Clipboard update broadcast received, updating UI.")
                 updateUI()
             }
         }
@@ -44,123 +46,95 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // Toast.makeText(this, "Toast 1: Bắt đầu onCreate", Toast.LENGTH_SHORT).show()
-
-        fileLogger = FileLogger(this)
-        fileLogger.log("MainActivity", "onCreate: Activity created")
-        // Toast.makeText(this, "Toast 2: Đã khởi tạo FileLogger", Toast.LENGTH_SHORT).show()
-
+        Log.d("MainActivity", "onCreate: Activity created")
         ClipboardDataManager.initialize(this)
-        // Toast.makeText(this, "Toast 3: Đã khởi tạo ClipboardDataManager", Toast.LENGTH_SHORT).show()
-
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
-        // Toast.makeText(this, "Toast 4: Đã thiết lập giao diện", Toast.LENGTH_SHORT).show()
 
         clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
 
-        val filter = IntentFilter("com.dung.clipboard.ACTION_UPDATE_UI")
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            registerReceiver(updateUIReceiver, filter, RECEIVER_EXPORTED)
-        } else {
-            registerReceiver(updateUIReceiver, filter)
+        // Sửa: Đăng ký BroadcastReceiver khi Activity được tạo
+        LocalBroadcastManager.getInstance(this).registerReceiver(
+            clipboardUpdateReceiver,
+            IntentFilter("com.dung.clipboard.CLIPBOARD_UPDATED")
+        )
+
+        if (intent?.action == "com.dung.clipboard.ACTION_TOGGLE_UI") {
+            Log.d("MainActivity", "Received toggle action. Finishing activity.")
+            finish()
         }
 
-        try {
-            binding.toggleServiceButton.setOnClickListener {
-                fileLogger.log("MainActivity", "Toggle service button clicked.")
-                if (isMyServiceRunning(FloatingWidgetService::class.java)) {
-                    fileLogger.log("MainActivity", "Service is running, stopping it.")
-                    stopFloatingWidgetService()
-                    Toast.makeText(this, "Đã tắt Clipboard Nổi", Toast.LENGTH_SHORT).show()
-                } else {
-                    fileLogger.log("MainActivity", "Service is not running, starting it.")
-                    startFloatingWidgetService()
-                }
-                updateToggleButtonText()
+        binding.toggleServiceButton.setOnClickListener {
+            if (isServiceRunning) {
+                stopFloatingWidgetService()
+                Toast.makeText(this, "Đã tắt Clipboard Nổi", Toast.LENGTH_SHORT).show()
+            } else {
+                startFloatingWidgetService()
             }
-            binding.clearAllButton.setOnClickListener {
-                showConfirmClearDialog()
-            }
-            binding.viewLogButton.setOnClickListener {
-                showLogDialog()
-            }
-        } catch (e: Exception) {
-            Log.e("MainActivity", "Lỗi khi gán listener cho các view: ${e.message}", e)
-            Toast.makeText(this, "Lỗi: Không thể tìm thấy các nút bấm.", Toast.LENGTH_LONG).show()
         }
-
-        updateUI()
-        // Toast.makeText(this, "Toast 5: Kết thúc onCreate", Toast.LENGTH_SHORT).show()
     }
 
     override fun onResume() {
         super.onResume()
-        fileLogger.log("MainActivity", "onResume: Activity resumed, forcing UI update.")
+        Log.d("MainActivity", "onResume: Activity resumed, updating UI...")
+        // Tải lại dữ liệu mỗi khi Activity hiển thị
+        ClipboardDataManager.initialize(this)
         updateUI()
     }
 
     override fun onDestroy() {
         super.onDestroy()
-        unregisterReceiver(updateUIReceiver)
-        fileLogger.log("MainActivity", "onDestroy: Receiver unregistered.")
+        // Sửa: Hủy đăng ký BroadcastReceiver khi Activity bị hủy
+        LocalBroadcastManager.getInstance(this).unregisterReceiver(clipboardUpdateReceiver)
+        Log.d("MainActivity", "onDestroy: Activity destroyed, BroadcastReceiver unregistered.")
     }
 
     override fun onNewIntent(intent: Intent?) {
         super.onNewIntent(intent)
-        fileLogger.log("MainActivity", "onNewIntent: Received new intent with action ${intent?.action}")
+        Log.d("MainActivity", "onNewIntent: Received new intent with action ${intent?.action}")
         if (intent?.action == "com.dung.clipboard.ACTION_TOGGLE_UI") {
-            fileLogger.log("MainActivity", "Received toggle action, finishing activity.")
+            Log.d("MainActivity", "Received toggle action, finishing activity.")
             finish()
         }
-        updateUI()
     }
 
     private fun updateUI() {
-        // Toast.makeText(this, "Toast 4.1: Bắt đầu updateUI", Toast.LENGTH_SHORT).show()
-        fileLogger.log("MainActivity", "updateUI: Refreshing UI elements")
+        Log.d("MainActivity", "updateUI: Refreshing UI elements")
         addCopiedAndPinnedItems()
+        isServiceRunning = isMyServiceRunning(FloatingWidgetService::class.java)
         updateToggleButtonText()
-        // Toast.makeText(this, "Toast 4.2: Kết thúc updateUI", Toast.LENGTH_SHORT).show()
     }
 
     private fun addCopiedAndPinnedItems() {
-        // Toast.makeText(this, "Toast 4.1.1: Bắt đầu addCopiedAndPinnedItems", Toast.LENGTH_SHORT).show()
-        fileLogger.log("MainActivity", "addCopiedAndPinnedItems: Refreshing lists")
+        Log.d("MainActivity", "addCopiedAndPinnedItems: Refreshing lists")
         binding.copiedLayout.removeViews(1, binding.copiedLayout.childCount - 1)
         binding.pinnedLayout.removeViews(1, binding.pinnedLayout.childCount - 1)
 
-        val copiedList = ClipboardDataManager.getCopiedList().take(10)
-        // Toast.makeText(this, "Toast 4.1.2: Lấy copiedList thành công, số lượng: ${copiedList.size}", Toast.LENGTH_SHORT).show()
-
-        copiedList.forEachIndexed { index, text ->
-            // Toast.makeText(this, "Toast 4.1.3: Đang xử lý item copied $index", Toast.LENGTH_SHORT).show()
-            binding.copiedLayout.addView(createTextItem(text, false))
+        ClipboardDataManager.getCopiedList().forEach { text ->
+            // Sửa: Giới hạn 10 khung cho danh sách "Đã sao chép"
+            if (binding.copiedLayout.childCount - 1 < 10) {
+                binding.copiedLayout.addView(createTextItem(text, false))
+            }
         }
 
-        val pinnedList = ClipboardDataManager.getPinnedList()
-        // Toast.makeText(this, "Toast 4.1.4: Lấy pinnedList thành công, số lượng: ${pinnedList.size}", Toast.LENGTH_SHORT).show()
-
-        pinnedList.forEachIndexed { index, text ->
-            // Toast.makeText(this, "Toast 4.1.5: Đang xử lý item pinned $index", Toast.LENGTH_SHORT).show()
+        ClipboardDataManager.getPinnedList().forEach { text ->
             binding.pinnedLayout.addView(createTextItem(text, true))
         }
-
-        // Toast.makeText(this, "Toast 4.1.6: Kết thúc addCopiedAndPinnedItems", Toast.LENGTH_SHORT).show()
     }
 
     private fun startFloatingWidgetService() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.canDrawOverlays(this)) {
-            val intent = Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:$packageName"))
+            val intent = Intent(
+                Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                Uri.parse("package:$packageName")
+            )
             startActivityForResult(intent, 123)
             Toast.makeText(this, "Vui lòng cấp quyền vẽ đè lên ứng dụng khác", Toast.LENGTH_LONG).show()
         } else {
             val serviceIntent = Intent(this, FloatingWidgetService::class.java)
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                startForegroundService(serviceIntent)
-            } else {
-                startService(serviceIntent)
-            }
+            startService(serviceIntent)
+            isServiceRunning = true
+            updateToggleButtonText()
             Toast.makeText(this, "Đã bật Clipboard Nổi", Toast.LENGTH_SHORT).show()
         }
     }
@@ -168,15 +142,17 @@ class MainActivity : AppCompatActivity() {
     private fun stopFloatingWidgetService() {
         val serviceIntent = Intent(this, FloatingWidgetService::class.java)
         stopService(serviceIntent)
+        isServiceRunning = false
+        updateToggleButtonText()
     }
 
     private fun updateToggleButtonText() {
-        if (isMyServiceRunning(FloatingWidgetService::class.java)) {
+        if (isServiceRunning) {
             binding.toggleServiceButton.text = "Tắt Clipboard Nổi"
-            (binding.toggleServiceButton as? Button)?.setBackgroundColor(Color.RED)
+            binding.toggleServiceButton.setBackgroundColor(Color.RED)
         } else {
             binding.toggleServiceButton.text = "Bật Clipboard Nổi"
-            (binding.toggleServiceButton as? Button)?.setBackgroundColor(Color.GREEN)
+            binding.toggleServiceButton.setBackgroundColor(Color.GREEN)
         }
     }
 
@@ -200,7 +176,6 @@ class MainActivity : AppCompatActivity() {
             }
             orientation = LinearLayout.HORIZONTAL
             setBackgroundResource(R.drawable.item_background)
-            gravity = Gravity.CENTER_VERTICAL
             setPadding(16, 16, 16, 16)
         }
 
@@ -214,7 +189,10 @@ class MainActivity : AppCompatActivity() {
             textSize = 16f
             setTextColor(Color.BLACK)
             setPadding(0, 0, 16, 0)
+            // Sửa: Giới hạn TextView chỉ hiển thị 2 dòng
             maxLines = 2
+            ellipsize = TextUtils.TruncateAt.END
+
             setOnClickListener {
                 clipboard.setPrimaryClip(android.content.ClipData.newPlainText("Copied Text", text))
                 Toast.makeText(this@MainActivity, "Đã sao chép: $text", Toast.LENGTH_SHORT).show()
@@ -232,17 +210,19 @@ class MainActivity : AppCompatActivity() {
                 ViewGroup.LayoutParams.WRAP_CONTENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT
             ).apply {
-                setMargins(8, 0, 8, 0)
+                setMargins(8, 0, 0, 0)
             }
             setImageResource(if (isPinned) android.R.drawable.btn_star_big_on else android.R.drawable.btn_star_big_off)
             setOnClickListener {
                 if (isPinned) {
                     ClipboardDataManager.unpinText(text)
+                    Toast.makeText(this@MainActivity, "Đã bỏ ghim", Toast.LENGTH_SHORT).show()
                 } else {
+                    // Sửa: Khi ghim, gọi hàm pinText để di chuyển nội dung
                     ClipboardDataManager.pinText(text)
+                    Toast.makeText(this@MainActivity, "Đã ghim", Toast.LENGTH_SHORT).show()
                 }
                 updateUI()
-                Toast.makeText(this@MainActivity, if (isPinned) "Đã bỏ ghim" else "Đã ghim", Toast.LENGTH_SHORT).show()
             }
         }
 
@@ -251,7 +231,7 @@ class MainActivity : AppCompatActivity() {
                 ViewGroup.LayoutParams.WRAP_CONTENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT
             ).apply {
-                setMargins(0, 0, 0, 0)
+                setMargins(8, 0, 0, 0)
             }
             setImageResource(android.R.drawable.ic_delete)
             setOnClickListener {
@@ -266,7 +246,11 @@ class MainActivity : AppCompatActivity() {
         return container
     }
 
-    override fun onCreateContextMenu(menu: ContextMenu?, v: View?, menuInfo: ContextMenu.ContextMenuInfo?) {
+    override fun onCreateContextMenu(
+        menu: ContextMenu?,
+        v: View?,
+        menuInfo: ContextMenu.ContextMenuInfo?
+    ) {
         super.onCreateContextMenu(menu, v, menuInfo)
         menuInflater.inflate(R.menu.context_menu, menu)
     }
@@ -324,41 +308,6 @@ class MainActivity : AppCompatActivity() {
             }
             .setNegativeButton("Hủy") { dialog, _ ->
                 dialog.cancel()
-            }
-            .show()
-    }
-
-    private fun showConfirmClearDialog() {
-        AlertDialog.Builder(this)
-            .setTitle("Xác nhận xóa tất cả")
-            .setMessage("Bạn có chắc chắn muốn xóa tất cả các mục đã sao chép và đã ghim không?")
-            .setPositiveButton("Xóa tất cả") { dialog, _ ->
-                fileLogger.clearLogs()
-                ClipboardDataManager.clearAllData()
-                updateUI()
-                Toast.makeText(this, "Đã xóa tất cả dữ liệu", Toast.LENGTH_SHORT).show()
-                dialog.dismiss()
-            }
-            .setNegativeButton("Hủy") { dialog, _ ->
-                dialog.cancel()
-            }
-            .show()
-    }
-
-    private fun showLogDialog() {
-        val logContent = fileLogger.getLogs()
-        val logTextView = TextView(this).apply {
-            text = logContent
-            setPadding(30, 30, 30, 30)
-            textSize = 12f
-        }
-        AlertDialog.Builder(this)
-            .setTitle("Log của ứng dụng")
-            .setView(logTextView)
-            .setPositiveButton("Đóng", null)
-            .setNegativeButton("Xóa Log") { _, _ ->
-                fileLogger.clearLogs()
-                Toast.makeText(this, "Đã xóa file log", Toast.LENGTH_SHORT).show()
             }
             .show()
     }
