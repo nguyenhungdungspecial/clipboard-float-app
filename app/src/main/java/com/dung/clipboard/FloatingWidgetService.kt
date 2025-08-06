@@ -20,6 +20,7 @@ class FloatingWidgetService : Service() {
     private val NOTIFICATION_ID = 101
 
     private lateinit var clipboardManager: ClipboardManager
+    private lateinit var localBroadcastManager: LocalBroadcastManager
 
     private val primaryClipChangedListener = ClipboardManager.OnPrimaryClipChangedListener {
         Log.d("FloatingWidgetService", "Clipboard changed detected!")
@@ -28,9 +29,9 @@ class FloatingWidgetService : Service() {
             Log.d("FloatingWidgetService", "New clip text: $clipText")
             ClipboardDataManager.addCopy(clipText)
 
-            // Sửa: Gửi broadcast local để thông báo cho MainActivity
             val intent = Intent("com.dung.clipboard.CLIPBOARD_UPDATED")
-            LocalBroadcastManager.getInstance(this).sendBroadcast(intent)
+            // Sửa: Sử dụng đối tượng localBroadcastManager đã được khởi tạo
+            localBroadcastManager.sendBroadcast(intent)
             Log.d("FloatingWidgetService", "Sent clipboard updated broadcast.")
         } else {
             Log.d("FloatingWidgetService", "Clip text is null or blank.")
@@ -43,6 +44,8 @@ class FloatingWidgetService : Service() {
         ClipboardDataManager.initialize(this)
         floatingWidget = FloatingWidget(this)
         clipboardManager = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        // Sửa: Khởi tạo LocalBroadcastManager
+        localBroadcastManager = LocalBroadcastManager.getInstance(this)
         clipboardManager.addPrimaryClipChangedListener(primaryClipChangedListener)
     }
 
