@@ -6,6 +6,8 @@
 
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
 
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
     <application
@@ -33,7 +35,10 @@
             android:enabled="true"
             android:exported="false"
             android:foregroundServiceType="specialUse"
-            tools:targetApi="34" />
+            tools:targetApi="34">
+            <property android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Clipboard watcher for floating widget" />
+        </service>
 
         <receiver
             android:name=".BootReceiver"
