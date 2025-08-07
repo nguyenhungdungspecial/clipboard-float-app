@@ -12,6 +12,7 @@ import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import androidx.core.app.NotificationCompat
+import android.app.ActivityManager
 
 private const val TAG = "ClipboardService"
 private const val NOTIFICATION_CHANNEL_ID = "clipboard_channel_id"
@@ -19,7 +20,6 @@ private const val NOTIFICATION_ID = 1
 
 class ClipboardService : Service() {
     private lateinit var clipboardManager: ClipboardManager
-    private var isFloatingWidgetServiceRunning = false
 
     // Listener để lắng nghe sự thay đổi của clipboard
     private val clipChangedListener = ClipboardManager.OnPrimaryClipChangedListener {
@@ -39,7 +39,7 @@ class ClipboardService : Service() {
                     Toast.makeText(this, "Đã copy: $copiedText", Toast.LENGTH_SHORT).show()
 
                     // KIỂM TRA VÀ KHỞI ĐỘNG FLOATINGWIDGETSERVICE NẾU CHƯA CHẠY
-                    if (!isFloatingWidgetServiceRunning) {
+                    if (!isMyServiceRunning(FloatingWidgetService::class.java)) {
                         startFloatingWidgetService()
                     }
                 }
@@ -91,14 +91,12 @@ class ClipboardService : Service() {
         } else {
             startService(serviceIntent)
         }
-        isFloatingWidgetServiceRunning = true
         Log.d(TAG, "FloatingWidgetService đã được khởi động.")
     }
 
     private fun stopFloatingWidgetService() {
         val serviceIntent = Intent(this, FloatingWidgetService::class.java)
         stopService(serviceIntent)
-        isFloatingWidgetServiceRunning = false
         Log.d(TAG, "FloatingWidgetService đã được dừng.")
     }
 
@@ -121,6 +119,17 @@ class ClipboardService : Service() {
             .setSmallIcon(R.mipmap.ic_launcher)
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .build()
+    }
+    
+    // Hàm kiểm tra một service có đang chạy hay không
+    private fun isMyServiceRunning(serviceClass: Class<*>): Boolean {
+        val manager = getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
+        for (service in manager.getRunningServices(Integer.MAX_VALUE)) {
+            if (serviceClass.name == service.service.className) {
+                return true
+            }
+        }
+        return false
     }
 }
 

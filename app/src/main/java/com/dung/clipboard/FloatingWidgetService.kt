@@ -21,7 +21,7 @@ class FloatingWidgetService : Service() {
         super.onCreate()
         Log.d("FloatingWidgetService", "onCreate: Service created")
         
-        // Khởi tạo FloatingWidget ở đây
+        // Khởi tạo FloatingWidget
         floatingWidget = FloatingWidget(this)
     }
 
@@ -42,7 +42,7 @@ class FloatingWidgetService : Service() {
         val notification = NotificationCompat.Builder(this, NOTIFICATION_CHANNEL_ID)
             .setContentTitle("Clipboard Float App đang chạy")
             .setContentText("Chạm để mở ứng dụng quản lý clipboard")
-            .setSmallIcon(android.R.drawable.ic_menu_edit)
+            .setSmallIcon(R.mipmap.ic_launcher)
             .setContentIntent(pendingIntent)
             .setOngoing(true)
             .build()

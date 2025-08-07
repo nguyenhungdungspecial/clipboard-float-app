@@ -14,6 +14,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.WindowManager
 import android.widget.ImageView
+import com.dung.clipboard.R // Đảm bảo đã import R
 
 class FloatingWidget(private val context: Context) {
     private var windowManager: WindowManager? = null
@@ -27,23 +28,21 @@ class FloatingWidget(private val context: Context) {
 
     fun show() {
         Log.d("FloatingWidget", "show: Attempting to show widget")
-        // Kiểm tra quyền "Draw over other apps"
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.canDrawOverlays(context)) {
             Log.w("FloatingWidget", "show: No SYSTEM_ALERT_WINDOW permission")
             return
         }
 
-        // Tạo floatingView nếu chưa có
         if (floatingView == null) {
             floatingView = ImageView(context).apply {
-                setImageResource(R.mipmap.ic_launcher) // Dùng ic_launcher thay vì btn_star_big_on
+                // Sử dụng icon ngôi sao từ Android
+                setImageResource(android.R.drawable.btn_star_big_on) 
                 layoutParams = ViewGroup.LayoutParams(150, 150)
                 setBackgroundColor(Color.parseColor("#80FFFFFF"))
             }
             Log.d("FloatingWidget", "show: floatingView created")
         }
 
-        // Thiết lập layout params
         val layoutFlag = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
         } else {
@@ -63,13 +62,10 @@ class FloatingWidget(private val context: Context) {
         }
         Log.d("FloatingWidget", "show: LayoutParams set")
 
-        // Gán listener để di chuyển widget
         floatingView?.setOnTouchListener(FloatingTouchListener(layoutParams!!))
 
-        // Gán listener cho sự kiện click
         floatingView?.setOnClickListener {
             Log.d("FloatingWidget", "Widget clicked, opening MainActivity.")
-            // Sửa logic: không cần kiểm tra isMainActivityRunning()
             val intent = Intent(context, MainActivity::class.java).apply {
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
             }
@@ -77,7 +73,6 @@ class FloatingWidget(private val context: Context) {
         }
 
         try {
-            // Thêm hoặc cập nhật widget
             if (floatingView?.windowToken == null) {
                 windowManager?.addView(floatingView, layoutParams)
                 Log.d("FloatingWidget", "show: Widget added to WindowManager")
@@ -108,8 +103,6 @@ class FloatingWidget(private val context: Context) {
         }
     }
 
-    // Lớp này đã được tách ra, không cần thiết phải là inner class
-    // Để giữ cho mã nguồn của bạn sạch hơn, bạn có thể tách nó ra thành một file riêng.
     inner class FloatingTouchListener(private val layoutParams: WindowManager.LayoutParams) : View.OnTouchListener {
         private var initialX = 0
         private var initialY = 0

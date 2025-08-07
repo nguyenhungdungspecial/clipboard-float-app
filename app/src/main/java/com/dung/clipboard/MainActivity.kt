@@ -44,10 +44,7 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         Log.d("MainActivity", "onCreate: Activity created")
-
-        // Khởi tạo ClipboardDataManager
         ClipboardDataManager.initialize(this)
-        
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
@@ -71,7 +68,7 @@ class MainActivity : AppCompatActivity() {
         super.onResume()
         Log.d("MainActivity", "onResume: Activity resumed")
         val filter = IntentFilter("com.dung.clipboard.ACTION_CLIPBOARD_UPDATE")
-        registerReceiver(clipboardUpdateReceiver, filter)
+        registerReceiver(clipboardUpdateReceiver, filter, RECEIVER_EXPORTED) // Thêm cờ RECEIVER_EXPORTED
         updateUI()
     }
 
@@ -81,20 +78,9 @@ class MainActivity : AppCompatActivity() {
         unregisterReceiver(clipboardUpdateReceiver)
     }
 
-    override fun onNewIntent(intent: Intent?) {
-        super.onNewIntent(intent)
-        Log.d("MainActivity", "onNewIntent: Received new intent with action ${intent?.action}")
-        // Xử lý logic đóng/mở giao diện khi nhấn icon nổi
-        if (intent?.action == "com.dung.clipboard.ACTION_TOGGLE_UI") {
-            Log.d("MainActivity", "Received toggle action, finishing activity.")
-            finish()
-        }
-    }
-
     private fun updateUI() {
         Log.d("MainActivity", "updateUI: Refreshing UI elements")
         addCopiedAndPinnedItems()
-        // Kiểm tra xem ClipboardService có đang chạy hay không
         isServiceRunning = isMyServiceRunning(ClipboardService::class.java)
         updateToggleButtonText()
     }
@@ -171,7 +157,6 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun createTextItem(text: String, isPinned: Boolean): LinearLayout {
-        // ... (phần code này giữ nguyên) ...
         val container = LinearLayout(this).apply {
             layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
@@ -213,6 +198,7 @@ class MainActivity : AppCompatActivity() {
             ).apply {
                 setMargins(8, 0, 0, 0)
             }
+            // Sử dụng icon ngôi sao
             setImageResource(if (isPinned) android.R.drawable.btn_star_big_on else android.R.drawable.btn_star_big_off)
             setOnClickListener {
                 if (isPinned) {
