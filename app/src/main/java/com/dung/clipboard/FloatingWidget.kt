@@ -27,20 +27,23 @@ class FloatingWidget(private val context: Context) {
 
     fun show() {
         Log.d("FloatingWidget", "show: Attempting to show widget")
+        // Kiểm tra quyền "Draw over other apps"
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.canDrawOverlays(context)) {
             Log.w("FloatingWidget", "show: No SYSTEM_ALERT_WINDOW permission")
             return
         }
 
+        // Tạo floatingView nếu chưa có
         if (floatingView == null) {
             floatingView = ImageView(context).apply {
-                setImageResource(android.R.drawable.btn_star_big_on)
+                setImageResource(R.mipmap.ic_launcher) // Dùng ic_launcher thay vì btn_star_big_on
                 layoutParams = ViewGroup.LayoutParams(150, 150)
                 setBackgroundColor(Color.parseColor("#80FFFFFF"))
             }
             Log.d("FloatingWidget", "show: floatingView created")
         }
 
+        // Thiết lập layout params
         val layoutFlag = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
         } else {
@@ -60,26 +63,21 @@ class FloatingWidget(private val context: Context) {
         }
         Log.d("FloatingWidget", "show: LayoutParams set")
 
+        // Gán listener để di chuyển widget
         floatingView?.setOnTouchListener(FloatingTouchListener(layoutParams!!))
 
+        // Gán listener cho sự kiện click
         floatingView?.setOnClickListener {
-            if (isMainActivityRunning()) {
-                Log.d("FloatingWidget", "MainActivity is running, sending close intent.")
-                val intent = Intent(context, MainActivity::class.java).apply {
-                    action = "com.dung.clipboard.ACTION_TOGGLE_UI"
-                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
-                }
-                context.startActivity(intent)
-            } else {
-                Log.d("FloatingWidget", "MainActivity is not running, opening it.")
-                val intent = Intent(context, MainActivity::class.java).apply {
-                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                }
-                context.startActivity(intent)
+            Log.d("FloatingWidget", "Widget clicked, opening MainActivity.")
+            // Sửa logic: không cần kiểm tra isMainActivityRunning()
+            val intent = Intent(context, MainActivity::class.java).apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
             }
+            context.startActivity(intent)
         }
 
         try {
+            // Thêm hoặc cập nhật widget
             if (floatingView?.windowToken == null) {
                 windowManager?.addView(floatingView, layoutParams)
                 Log.d("FloatingWidget", "show: Widget added to WindowManager")
@@ -110,17 +108,8 @@ class FloatingWidget(private val context: Context) {
         }
     }
 
-    private fun isMainActivityRunning(): Boolean {
-        val manager = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
-        val runningTasks = manager.getRunningTasks(10)
-        for (task in runningTasks) {
-            if (task.topActivity?.packageName == context.packageName && task.baseActivity?.className == MainActivity::class.java.name) {
-                return true
-            }
-        }
-        return false
-    }
-
+    // Lớp này đã được tách ra, không cần thiết phải là inner class
+    // Để giữ cho mã nguồn của bạn sạch hơn, bạn có thể tách nó ra thành một file riêng.
     inner class FloatingTouchListener(private val layoutParams: WindowManager.LayoutParams) : View.OnTouchListener {
         private var initialX = 0
         private var initialY = 0
@@ -150,7 +139,7 @@ class FloatingWidget(private val context: Context) {
                     val deltaX = (event.rawX - initialTouchX).toInt()
                     val deltaY = (event.rawY - initialTouchY).toInt()
 
-                    if (isClick && (kotlin.math.abs(deltaX) > 10 || kotlin.math.abs(deltaY) > 10)) {
+                    if (isClick && (Math.abs(deltaX) > 10 || Math.abs(deltaY) > 10)) {
                         isClick = false
                     }
 
