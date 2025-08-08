@@ -6,46 +6,35 @@ import android.content.ClipboardManager
 import android.util.Log
 import android.view.accessibility.AccessibilityEvent
 import android.widget.Toast
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 
 class MyAccessibilityService : AccessibilityService() {
 
-    private val clipboardManager: ClipboardManager by lazy {
-        getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
-    }
+    private lateinit var clipboardManager: ClipboardManager
 
-    private val clipboardDataManager: ClipboardDataManager by lazy {
-        ClipboardDataManager(this)
+    override fun onCreate() {
+        super.onCreate()
+        // Khởi tạo ClipboardManager
+        clipboardManager = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
         if (event == null) return
 
-        // Dựa vào event type để lắng nghe các sự kiện liên quan đến clipboard.
-        // TYPE_VIEW_TEXT_SELECTION_CHANGED là một lựa chọn tốt.
-        // Bạn có thể mở rộng với các loại sự kiện khác nếu cần.
-        when (event.eventType) {
-            AccessibilityEvent.TYPE_VIEW_TEXT_SELECTION_CHANGED -> {
-                // Đợi một chút để đảm bảo clip đã được cập nhật
-                CoroutineScope(Dispatchers.IO).launch {
-                    Thread.sleep(100) // Đợi 100ms
-                    val clipData = clipboardManager.primaryClip
-                    if (clipData != null && clipData.itemCount > 0) {
-                        val clipItem = clipData.getItemAt(0)
-                        val clipText = clipItem.text
-                        if (!clipText.isNullOrEmpty()) {
-                            // Lưu dữ liệu đã sao chép vào ClipboardDataManager
-                            clipboardDataManager.addClip(clipText.toString())
-                            Log.d("MyAccessibilityService", "Đã sao chép: $clipText")
-
-                            // Hiển thị một Toast để thông báo
-                            launch(Dispatchers.Main) {
-                                Toast.makeText(applicationContext, "Đã sao chép: $clipText", Toast.LENGTH_SHORT).show()
-                            }
-                        }
-                    }
+        // Dựa vào event type để lắng nghe các sự kiện liên quan đến clipboard
+        // TYPE_VIEW_TEXT_SELECTION_CHANGED là một lựa chọn tốt
+        // TYPE_VIEW_TEXT_CHANGED cũng là một lựa chọn tốt
+        if (event.eventType == AccessibilityEvent.TYPE_VIEW_TEXT_CHANGED || event.eventType == AccessibilityEvent.TYPE_VIEW_TEXT_SELECTION_CHANGED) {
+            val clipData = clipboardManager.primaryClip
+            if (clipData != null && clipData.itemCount > 0) {
+                val clipItem = clipData.getItemAt(0)
+                val clipText = clipItem.text
+                if (!clipText.isNullOrEmpty()) {
+                    // Gọi hàm addCopy của ClipboardDataManager
+                    ClipboardDataManager.addCopy(clipText.toString())
+                    Log.d("MyAccessibilityService", "Đã sao chép: $clipText")
+                    
+                    // Hiển thị một Toast để thông báo
+                    Toast.makeText(applicationContext, "Đã sao chép: $clipText", Toast.LENGTH_SHORT).show()
                 }
             }
         }
@@ -53,6 +42,8 @@ class MyAccessibilityService : AccessibilityService() {
 
     override fun onServiceConnected() {
         super.onServiceConnected()
+        // Khởi tạo ClipboardDataManager khi dịch vụ được kết nối
+        ClipboardDataManager.initialize(applicationContext)
         Log.d("MyAccessibilityService", "Dịch vụ Trợ năng đã kết nối thành công.")
         Toast.makeText(applicationContext, "Dịch vụ Clipboard Nổi đã được bật", Toast.LENGTH_SHORT).show()
     }
