@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Clipboard Float App</string>
+    <string name="accessibility_service_label">Dịch vụ Clipboard Nổi</string>
+    <string name="accessibility_service_description">Cho phép ứng dụng Clipboard Nổi theo dõi và lưu lại các dữ liệu đã sao chép của bạn.</string>
 </resources>
 
