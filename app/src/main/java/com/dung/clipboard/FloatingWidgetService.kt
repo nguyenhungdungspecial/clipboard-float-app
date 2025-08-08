@@ -4,6 +4,7 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
+import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.os.Build
@@ -17,18 +18,33 @@ class FloatingWidgetService : Service() {
     private val NOTIFICATION_CHANNEL_ID = "ClipboardFloatApp_Channel"
     private val NOTIFICATION_ID = 101
 
+    private lateinit var clipboardManager: ClipboardManager
+
+    private val primaryClipChangedListener = ClipboardManager.OnPrimaryClipChangedListener {
+        Log.d("FloatingWidgetService", "Clipboard changed detected!")
+        val clipText = clipboardManager.primaryClip?.getItemAt(0)?.text?.toString()
+        if (!clipText.isNullOrBlank()) {
+            Log.d("FloatingWidgetService", "New clip text: $clipText")
+            ClipboardDataManager.addCopy(clipText)
+            // Gửi broadcast để MainActivity cập nhật giao diện
+            val intent = Intent("com.dung.clipboard.ACTION_CLIPBOARD_UPDATE")
+            sendBroadcast(intent)
+        } else {
+            Log.d("FloatingWidgetService", "Clip text is null or blank.")
+        }
+    }
+
     override fun onCreate() {
         super.onCreate()
         Log.d("FloatingWidgetService", "onCreate: Service created")
-        
-        // Khởi tạo FloatingWidget
+        ClipboardDataManager.initialize(this)
         floatingWidget = FloatingWidget(this)
+        clipboardManager = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        clipboardManager.addPrimaryClipChangedListener(primaryClipChangedListener)
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         Log.d("FloatingWidgetService", "onStartCommand: Service started")
-        
-        // Tạo notification cho foreground service
         createNotificationChannel()
 
         val notificationIntent = Intent(this, MainActivity::class.java)
@@ -42,14 +58,13 @@ class FloatingWidgetService : Service() {
         val notification = NotificationCompat.Builder(this, NOTIFICATION_CHANNEL_ID)
             .setContentTitle("Clipboard Float App đang chạy")
             .setContentText("Chạm để mở ứng dụng quản lý clipboard")
-            .setSmallIcon(R.mipmap.ic_launcher)
+            .setSmallIcon(android.R.drawable.ic_menu_edit)
             .setContentIntent(pendingIntent)
             .setOngoing(true)
             .build()
 
         startForeground(NOTIFICATION_ID, notification)
 
-        // Hiển thị widget nổi
         floatingWidget.show()
 
         return START_STICKY
@@ -58,9 +73,8 @@ class FloatingWidgetService : Service() {
     override fun onDestroy() {
         super.onDestroy()
         Log.d("FloatingWidgetService", "onDestroy: Service destroyed")
-        
-        // Loại bỏ widget khỏi màn hình
         floatingWidget.remove()
+        clipboardManager.removePrimaryClipChangedListener(primaryClipChangedListener)
     }
 
     override fun onBind(intent: Intent?): IBinder? {
@@ -80,4 +94,3 @@ class FloatingWidgetService : Service() {
         }
     }
 }
-
