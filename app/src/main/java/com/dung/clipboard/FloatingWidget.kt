@@ -1,6 +1,5 @@
 package com.dung.clipboard
 
-import android.app.ActivityManager
 import android.content.Context
 import android.content.Intent
 import android.graphics.Color
@@ -14,7 +13,6 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.WindowManager
 import android.widget.ImageView
-import com.dung.clipboard.R // Đảm bảo đã import R
 
 class FloatingWidget(private val context: Context) {
     private var windowManager: WindowManager? = null
@@ -35,8 +33,7 @@ class FloatingWidget(private val context: Context) {
 
         if (floatingView == null) {
             floatingView = ImageView(context).apply {
-                // Sử dụng icon ngôi sao từ Android
-                setImageResource(android.R.drawable.btn_star_big_on) 
+                setImageResource(android.R.drawable.btn_star_big_on)
                 layoutParams = ViewGroup.LayoutParams(150, 150)
                 setBackgroundColor(Color.parseColor("#80FFFFFF"))
             }
@@ -63,11 +60,11 @@ class FloatingWidget(private val context: Context) {
         Log.d("FloatingWidget", "show: LayoutParams set")
 
         floatingView?.setOnTouchListener(FloatingTouchListener(layoutParams!!))
-
         floatingView?.setOnClickListener {
-            Log.d("FloatingWidget", "Widget clicked, opening MainActivity.")
+            Log.d("FloatingWidget", "OnClickListener triggered, sending toggle intent.")
             val intent = Intent(context, MainActivity::class.java).apply {
-                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
+                action = "com.dung.clipboard.ACTION_TOGGLE_UI"
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
             }
             context.startActivity(intent)
         }
@@ -108,7 +105,7 @@ class FloatingWidget(private val context: Context) {
         private var initialY = 0
         private var initialTouchX = 0f
         private var initialTouchY = 0f
-        private var isClick = true
+        private var isClickEvent = true
 
         override fun onTouch(view: View, event: MotionEvent): Boolean {
             when (event.actionMasked) {
@@ -117,12 +114,12 @@ class FloatingWidget(private val context: Context) {
                     initialY = layoutParams.y
                     initialTouchX = event.rawX
                     initialTouchY = event.rawY
-                    isClick = true
+                    isClickEvent = true
                     return true
                 }
 
                 MotionEvent.ACTION_UP -> {
-                    if (isClick) {
+                    if (isClickEvent) {
                         view.performClick()
                     }
                     return true
@@ -132,11 +129,11 @@ class FloatingWidget(private val context: Context) {
                     val deltaX = (event.rawX - initialTouchX).toInt()
                     val deltaY = (event.rawY - initialTouchY).toInt()
 
-                    if (isClick && (Math.abs(deltaX) > 10 || Math.abs(deltaY) > 10)) {
-                        isClick = false
+                    if (isClickEvent && (kotlin.math.abs(deltaX) > 10 || kotlin.math.abs(deltaY) > 10)) {
+                        isClickEvent = false
                     }
 
-                    if (!isClick) {
+                    if (!isClickEvent) {
                         layoutParams.x = initialX + deltaX
                         layoutParams.y = initialY + deltaY
                         windowManager?.updateViewLayout(view, layoutParams)

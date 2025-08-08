@@ -1,5 +1,6 @@
 package com.dung.clipboard
 
+import android.app.ActivityManager
 import android.content.BroadcastReceiver
 import android.content.ClipboardManager
 import android.content.Context
@@ -61,6 +62,15 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+        binding.clearAllButton.setOnClickListener {
+            showConfirmClearAllDialog()
+        }
+
+        binding.viewLogButton.setOnClickListener {
+            // Logic xem log. Bạn có thể mở một activity khác hoặc hiển thị dialog.
+            Toast.makeText(this, "Chức năng xem log chưa được triển khai.", Toast.LENGTH_SHORT).show()
+        }
+
         updateUI()
     }
 
@@ -81,10 +91,9 @@ class MainActivity : AppCompatActivity() {
     override fun onNewIntent(intent: Intent?) {
         super.onNewIntent(intent)
         Log.d("MainActivity", "onNewIntent: Received new intent with action ${intent?.action}")
-        // Xử lý logic đóng/mở giao diện khi nhấn icon nổi
         if (intent?.action == "com.dung.clipboard.ACTION_TOGGLE_UI") {
-            Log.d("MainActivity", "Received toggle action, finishing activity.")
-            finish()
+            Log.d("MainActivity", "Received toggle action, moving activity to back.")
+            moveTaskToBack(true)
         }
     }
 
@@ -97,6 +106,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun addCopiedAndPinnedItems() {
         Log.d("MainActivity", "addCopiedAndPinnedItems: Refreshing lists")
+        // Giữ lại tiêu đề "Đã ghim" và "Lịch sử sao chép" khi xóa các view cũ
         if (binding.copiedLayout.childCount > 1) {
             binding.copiedLayout.removeViews(1, binding.copiedLayout.childCount - 1)
         }
@@ -148,7 +158,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun isMyServiceRunning(serviceClass: Class<*>): Boolean {
-        val manager = getSystemService(Context.ACTIVITY_SERVICE) as android.app.ActivityManager
+        val manager = getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
         for (service in manager.getRunningServices(Integer.MAX_VALUE)) {
             if (serviceClass.name == service.service.className) {
                 return true
@@ -293,4 +303,22 @@ class MainActivity : AppCompatActivity() {
             }
             .show()
     }
+    
+    // Thêm hàm xác nhận xóa toàn bộ
+    private fun showConfirmClearAllDialog() {
+        AlertDialog.Builder(this)
+            .setTitle("Xác nhận xóa toàn bộ")
+            .setMessage("Bạn có chắc chắn muốn xóa tất cả lịch sử và mục đã ghim không?")
+            .setPositiveButton("Xóa tất cả") { dialog, _ ->
+                ClipboardDataManager.clearAll()
+                updateUI()
+                Toast.makeText(this, "Đã xóa tất cả", Toast.LENGTH_SHORT).show()
+                dialog.dismiss()
+            }
+            .setNegativeButton("Hủy") { dialog, _ ->
+                dialog.cancel()
+            }
+            .show()
+    }
 }
+
