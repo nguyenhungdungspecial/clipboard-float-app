@@ -15,7 +15,7 @@ import androidx.appcompat.app.AppCompatActivity
 
 class MainActivity : AppCompatActivity() {
 
-    private lateinit var var toggleServiceButton: Button
+    private lateinit var toggleServiceButton: Button
 
     private val clipboardReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {

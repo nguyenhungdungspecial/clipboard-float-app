@@ -34,13 +34,4 @@ class ClipboardService : Service() {
         clipboardManager.addPrimaryClipChangedListener(onPrimaryClipChangedListener)
     }
 
-    override fun onBind(intent: Intent?): IBinder? {
-        return null
-    }
-
-    override fun onDestroy() {
-        super.onDestroy()
-        clipboardManager.removePrimaryClipChangedListener(onPrimaryClipChangedListener)
-    }
-}
-
+    override fun onBind(intent: Intent?): I
