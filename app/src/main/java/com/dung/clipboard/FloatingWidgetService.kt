@@ -1,96 +1,113 @@
 package com.dung.clipboard
 
-import android.app.NotificationChannel
-import android.app.NotificationManager
-import android.app.PendingIntent
 import android.app.Service
-import android.content.ClipboardManager
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import android.os.Build
+import android.content.IntentFilter
+import android.graphics.PixelFormat
 import android.os.IBinder
-import android.util.Log
-import androidx.core.app.NotificationCompat
+import android.view.Gravity
+import android.view.LayoutInflater
+import android.view.MotionEvent
+import android.view.View
+import android.view.WindowManager
+import android.widget.ImageButton
+import android.widget.TextView
 
 class FloatingWidgetService : Service() {
 
-    private lateinit var floatingWidget: FloatingWidget
-    private val NOTIFICATION_CHANNEL_ID = "ClipboardFloatApp_Channel"
-    private val NOTIFICATION_ID = 101
+    private lateinit var windowManager: WindowManager
+    private lateinit var floatingWidgetView: View
+    private lateinit var layoutParams: WindowManager.LayoutParams
+    private lateinit var clipboardTextView: TextView
+    private var initialX: Int = 0
+    private var initialY: Int = 0
+    private var initialTouchX: Float = 0f
+    private var initialTouchY: Float = 0f
 
-    private lateinit var clipboardManager: ClipboardManager
-
-    private val primaryClipChangedListener = ClipboardManager.OnPrimaryClipChangedListener {
-        Log.d("FloatingWidgetService", "Clipboard changed detected!")
-        val clipText = clipboardManager.primaryClip?.getItemAt(0)?.text?.toString()
-        if (!clipText.isNullOrBlank()) {
-            Log.d("FloatingWidgetService", "New clip text: $clipText")
-            ClipboardDataManager.addCopy(clipText)
-            // Gửi broadcast để MainActivity cập nhật giao diện
-            val intent = Intent("com.dung.clipboard.ACTION_CLIPBOARD_UPDATE")
-            sendBroadcast(intent)
-        } else {
-            Log.d("FloatingWidgetService", "Clip text is null or blank.")
+    // BroadcastReceiver để nhận dữ liệu clipboard mới
+    private val clipboardReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            val copiedData = intent?.getStringExtra("copied_data")
+            if (copiedData != null) {
+                // Cập nhật TextView trong cửa sổ nổi
+                clipboardTextView.text = copiedData
+            }
         }
-    }
-
-    override fun onCreate() {
-        super.onCreate()
-        Log.d("FloatingWidgetService", "onCreate: Service created")
-        ClipboardDataManager.initialize(this)
-        floatingWidget = FloatingWidget(this)
-        clipboardManager = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-        clipboardManager.addPrimaryClipChangedListener(primaryClipChangedListener)
-    }
-
-    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        Log.d("FloatingWidgetService", "onStartCommand: Service started")
-        createNotificationChannel()
-
-        val notificationIntent = Intent(this, MainActivity::class.java)
-        val pendingIntent = PendingIntent.getActivity(
-            this,
-            0,
-            notificationIntent,
-            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
-        )
-
-        val notification = NotificationCompat.Builder(this, NOTIFICATION_CHANNEL_ID)
-            .setContentTitle("Clipboard Float App đang chạy")
-            .setContentText("Chạm để mở ứng dụng quản lý clipboard")
-            .setSmallIcon(android.R.drawable.ic_menu_edit)
-            .setContentIntent(pendingIntent)
-            .setOngoing(true)
-            .build()
-
-        startForeground(NOTIFICATION_ID, notification)
-
-        floatingWidget.show()
-
-        return START_STICKY
-    }
-
-    override fun onDestroy() {
-        super.onDestroy()
-        Log.d("FloatingWidgetService", "onDestroy: Service destroyed")
-        floatingWidget.remove()
-        clipboardManager.removePrimaryClipChangedListener(primaryClipChangedListener)
     }
 
     override fun onBind(intent: Intent?): IBinder? {
         return null
     }
 
-    private fun createNotificationChannel() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val serviceChannel = NotificationChannel(
-                NOTIFICATION_CHANNEL_ID,
-                "Clipboard Float App Service Channel",
-                NotificationManager.IMPORTANCE_DEFAULT
-            )
-            val manager = getSystemService(NotificationManager::class.java)
-            manager.createNotificationChannel(serviceChannel)
-            Log.d("FloatingWidgetService", "Notification Channel created")
+    override fun onCreate() {
+        super.onCreate()
+
+        windowManager = getSystemService(Context.WINDOW_SERVICE) as WindowManager
+        val inflater = getSystemService(Context.LAYOUT_INFLATER_SERVICE) as LayoutInflater
+        floatingWidgetView = inflater.inflate(R.layout.floating_widget_layout, null)
+
+        clipboardTextView = floatingWidgetView.findViewById(R.id.clipboardTextView)
+        val closeButton = floatingWidgetView.findViewById<ImageButton>(R.id.closeButton)
+
+        // Thiết lập layout params cho cửa sổ nổi
+        layoutParams = WindowManager.LayoutParams(
+            WindowManager.LayoutParams.WRAP_CONTENT,
+            WindowManager.LayoutParams.WRAP_CONTENT,
+            WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
+            PixelFormat.TRANSLUCENT
+        )
+
+        layoutParams.gravity = Gravity.TOP or Gravity.START
+        layoutParams.x = 0
+        layoutParams.y = 100
+
+        // Thêm view vào WindowManager
+        windowManager.addView(floatingWidgetView, layoutParams)
+
+        // Xử lý sự kiện đóng cửa sổ nổi
+        closeButton.setOnClickListener {
+            stopSelf() // Dừng service, service sẽ tự động xóa view
+        }
+
+        // Xử lý sự kiện di chuyển cửa sổ nổi
+        floatingWidgetView.setOnTouchListener(object : View.OnTouchListener {
+            override fun onTouch(v: View?, event: MotionEvent?): Boolean {
+                when (event?.action) {
+                    MotionEvent.ACTION_DOWN -> {
+                        initialX = layoutParams.x
+                        initialY = layoutParams.y
+                        initialTouchX = event.rawX
+                        initialTouchY = event.rawY
+                        return true
+                    }
+                    MotionEvent.ACTION_MOVE -> {
+                        layoutParams.x = initialX + (event.rawX - initialTouchX).toInt()
+                        layoutParams.y = initialY + (event.rawY - initialTouchY).toInt()
+                        windowManager.updateViewLayout(floatingWidgetView, layoutParams)
+                        return true
+                    }
+                    else -> return false
+                }
+            }
+        })
+
+        // Đăng ký BroadcastReceiver để nhận dữ liệu clipboard
+        val filter = IntentFilter("com.dung.clipboard.CLIPBOARD_UPDATE")
+        registerReceiver(clipboardReceiver, filter)
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        // Hủy đăng ký receiver khi service bị hủy
+        unregisterReceiver(clipboardReceiver)
+
+        // Xóa cửa sổ nổi khỏi màn hình
+        if (::floatingWidgetView.isInitialized) {
+            windowManager.removeView(floatingWidgetView)
         }
     }
 }
+
