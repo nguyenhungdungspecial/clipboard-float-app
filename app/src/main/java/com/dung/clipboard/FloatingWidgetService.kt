@@ -26,12 +26,10 @@ class FloatingWidgetService : Service() {
     private var initialTouchX: Float = 0f
     private var initialTouchY: Float = 0f
 
-    // BroadcastReceiver để nhận dữ liệu clipboard mới
     private val clipboardReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
             val copiedData = intent?.getStringExtra("copied_data")
             if (copiedData != null) {
-                // Cập nhật TextView trong cửa sổ nổi
                 clipboardTextView.text = copiedData
             }
         }
@@ -51,7 +49,6 @@ class FloatingWidgetService : Service() {
         clipboardTextView = floatingWidgetView.findViewById(R.id.clipboardTextView)
         val closeButton = floatingWidgetView.findViewById<ImageButton>(R.id.closeButton)
 
-        // Thiết lập layout params cho cửa sổ nổi
         layoutParams = WindowManager.LayoutParams(
             WindowManager.LayoutParams.WRAP_CONTENT,
             WindowManager.LayoutParams.WRAP_CONTENT,
@@ -64,15 +61,12 @@ class FloatingWidgetService : Service() {
         layoutParams.x = 0
         layoutParams.y = 100
 
-        // Thêm view vào WindowManager
         windowManager.addView(floatingWidgetView, layoutParams)
 
-        // Xử lý sự kiện đóng cửa sổ nổi
         closeButton.setOnClickListener {
-            stopSelf() // Dừng service, service sẽ tự động xóa view
+            stopSelf()
         }
 
-        // Xử lý sự kiện di chuyển cửa sổ nổi
         floatingWidgetView.setOnTouchListener(object : View.OnTouchListener {
             override fun onTouch(v: View?, event: MotionEvent?): Boolean {
                 when (event?.action) {
@@ -94,17 +88,14 @@ class FloatingWidgetService : Service() {
             }
         })
 
-        // Đăng ký BroadcastReceiver để nhận dữ liệu clipboard
         val filter = IntentFilter("com.dung.clipboard.CLIPBOARD_UPDATE")
         registerReceiver(clipboardReceiver, filter)
     }
 
     override fun onDestroy() {
         super.onDestroy()
-        // Hủy đăng ký receiver khi service bị hủy
         unregisterReceiver(clipboardReceiver)
 
-        // Xóa cửa sổ nổi khỏi màn hình
         if (::floatingWidgetView.isInitialized) {
             windowManager.removeView(floatingWidgetView)
         }

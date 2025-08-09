@@ -12,9 +12,7 @@ class ClipboardService : Service() {
 
     private lateinit var clipboardManager: ClipboardManager
 
-    // Listener để lắng nghe sự thay đổi của clipboard
     private val onPrimaryClipChangedListener = ClipboardManager.OnPrimaryClipChangedListener {
-        // Lấy dữ liệu mới nhất từ clipboard
         val clipData = clipboardManager.primaryClip
         if (clipData != null && clipData.itemCount > 0) {
             val item = clipData.getItemAt(0)
@@ -23,10 +21,6 @@ class ClipboardService : Service() {
             if (copiedText != null) {
                 Log.d("ClipboardService", "New text copied: $copiedText")
 
-                // TODO: Lưu dữ liệu vào ClipboardDataManager
-                // Ví dụ: ClipboardDataManager.getInstance(this).saveItem(copiedText)
-
-                // Gửi Broadcast tới MainActivity và FloatingWidget để cập nhật giao diện
                 val intent = Intent("com.dung.clipboard.CLIPBOARD_UPDATE")
                 intent.putExtra("copied_data", copiedText)
                 sendBroadcast(intent)
@@ -46,7 +40,6 @@ class ClipboardService : Service() {
 
     override fun onDestroy() {
         super.onDestroy()
-        // Hủy đăng ký listener khi service bị hủy
         clipboardManager.removePrimaryClipChangedListener(onPrimaryClipChangedListener)
     }
 }
