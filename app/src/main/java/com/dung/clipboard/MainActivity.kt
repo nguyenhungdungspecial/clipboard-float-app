@@ -11,17 +11,14 @@ import androidx.appcompat.app.AppCompatActivity
 
 class MainActivity : AppCompatActivity() {
 
-    private lateinit var clearAllButton: Button
-    private lateinit var viewLogButton: Button
-    private lateinit var starIcon: Button // Giả sử bạn có một icon ngôi sao trong activity_main.xml
+    private lateinit var toggleServiceButton: Button
 
-    // BroadcastReceiver để nhận dữ liệu clipboard mới từ ClipboardService
     private val clipboardReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
             val copiedData = intent?.getStringExtra("copied_data")
             if (copiedData != null) {
-                // Cập nhật giao diện của MainActivity ở đây
-                // Ví dụ: myTextView.text = copiedData
+                // TODO: Cập nhật giao diện của MainActivity ở đây
+                // Ví dụ: cập nhật một TextView hoặc RecyclerView
             }
         }
     }
@@ -30,30 +27,17 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        // Khởi tạo các view
-        clearAllButton = findViewById(R.id.clearAllButton)
-        viewLogButton = findViewById(R.id.viewLogButton)
-        starIcon = findViewById(R.id.starIcon) // Thay starIcon bằng ID thực tế của bạn
+        toggleServiceButton = findViewById(R.id.toggleServiceButton)
 
-        // Xử lý sự kiện click cho các button
-        clearAllButton.setOnClickListener {
-            clearAll()
-        }
-
-        viewLogButton.setOnClickListener {
-            // Logic để mở màn hình log
-        }
-
-        // Logic khắc phục vấn đề 1: bật/tắt cửa sổ nổi
-        starIcon.setOnClickListener {
+        toggleServiceButton.setOnClickListener {
             if (isServiceRunning(FloatingWidgetService::class.java)) {
-                // Nếu đang chạy, gửi lệnh để dừng nó
                 val intent = Intent(this, FloatingWidgetService::class.java)
                 stopService(intent)
+                toggleServiceButton.text = "Bật Clipboard Nổi"
             } else {
-                // Nếu chưa chạy, khởi động nó
                 val intent = Intent(this, FloatingWidgetService::class.java)
                 startService(intent)
+                toggleServiceButton.text = "Tắt Clipboard Nổi"
             }
         }
 
@@ -64,18 +48,15 @@ class MainActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-        // Đăng ký receiver khi giao diện hiển thị
         val filter = IntentFilter("com.dung.clipboard.CLIPBOARD_UPDATE")
         registerReceiver(clipboardReceiver, filter)
     }
 
     override fun onPause() {
         super.onPause()
-        // Hủy đăng ký receiver khi giao diện bị ẩn
         unregisterReceiver(clipboardReceiver)
     }
 
-    // Hàm tiện ích để kiểm tra trạng thái của service
     private fun isServiceRunning(serviceClass: Class<*>): Boolean {
         val manager = getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
         for (service in manager.getRunningServices(Integer.MAX_VALUE)) {
@@ -84,12 +65,6 @@ class MainActivity : AppCompatActivity() {
             }
         }
         return false
-    }
-
-    // Hàm sửa lỗi Unresolved reference: clearAll
-    private fun clearAll() {
-        // Logic để xóa toàn bộ dữ liệu clipboard đã lưu
-        // Ví dụ: ClipboardDataManager.getInstance(this).clearAllItems()
     }
 }
 
