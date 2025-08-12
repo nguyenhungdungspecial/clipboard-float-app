@@ -1,106 +1,59 @@
 package com.dung.clipboard
 
 import android.content.Context
-import android.content.SharedPreferences
-import android.util.Log
-import com.google.gson.Gson
-import com.google.gson.reflect.TypeToken
 
 object ClipboardDataManager {
+    private const val PREFS = "clipboard_prefs"
+    private const val KEY_COPIED = "copied_list"
+    private const val KEY_PINNED = "pinned_list"
 
-    private lateinit var sharedPreferences: SharedPreferences
-    private val GSON = Gson()
+    private val inMemory = mutableListOf<String>()
+    private val pinned = mutableListOf<String>()
 
-    private const val PREFS_NAME = "ClipboardAppPrefs"
-    private const val COPIED_LIST_KEY = "copied_list"
-    private const val PINNED_LIST_KEY = "pinned_list"
-
-    private val copiedList = mutableListOf<String>()
-    private val pinnedList = mutableListOf<String>()
-
-    fun initialize(context: Context) {
-        if (!::sharedPreferences.isInitialized) {
-            sharedPreferences = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-            Log.d("ClipboardDataManager", "initialize: SharedPreferences initialized")
-            loadData()
+    fun addItem(ctx: Context, text: String) {
+        synchronized(this) {
+            if (inMemory.isNotEmpty() && inMemory[0] == text) return
+            inMemory.add(0, text)
+            if (inMemory.size > 200) inMemory.removeAt(inMemory.size - 1)
+            saveToPrefs(ctx)
         }
     }
 
-    private fun loadData() {
-        val copiedJson = sharedPreferences.getString(COPIED_LIST_KEY, null)
-        if (copiedJson != null) {
-            val type = object : TypeToken<MutableList<String>>() {}.type
-            copiedList.addAll(GSON.fromJson(copiedJson, type))
-            Log.d("ClipboardDataManager", "loadData: Loaded copied list. Size: ${copiedList.size}")
-        } else {
-            Log.d("ClipboardDataManager", "loadData: No copied list found in SharedPreferences.")
-        }
+    fun getCopiedList(ctx: Context): List<String> {
+        if (inMemory.isEmpty()) loadFromPrefs(ctx)
+        return inMemory.toList()
+    }
 
-        val pinnedJson = sharedPreferences.getString(PINNED_LIST_KEY, null)
-        if (pinnedJson != null) {
-            val type = object : TypeToken<MutableList<String>>() {}.type
-            pinnedList.addAll(GSON.fromJson(pinnedJson, type))
-            Log.d("ClipboardDataManager", "loadData: Loaded pinned list. Size: ${pinnedList.size}")
-        } else {
-            Log.d("ClipboardDataManager", "loadData: No pinned list found in SharedPreferences.")
+    fun getPinnedList(ctx: Context): List<String> {
+        if (pinned.isEmpty()) loadFromPrefs(ctx)
+        return pinned.toList()
+    }
+
+    fun pinItem(ctx: Context, text: String) {
+        if (!pinned.contains(text)) {
+            pinned.add(0, text)
+            saveToPrefs(ctx)
         }
     }
 
-    private fun saveData() {
-        val editor = sharedPreferences.edit()
-        editor.putString(COPIED_LIST_KEY, GSON.toJson(copiedList))
-        editor.putString(PINNED_LIST_KEY, GSON.toJson(pinnedList))
-        editor.apply()
-        Log.d("ClipboardDataManager", "saveData: Data saved. Copied size: ${copiedList.size}, Pinned size: ${pinnedList.size}")
+    fun unpinItem(ctx: Context, text: String) {
+        if (pinned.remove(text)) saveToPrefs(ctx)
     }
 
-    fun addCopy(text: String) {
-        // Sửa: Không giới hạn cố định 20, mà sẽ giới hạn bằng số lượng khung hiển thị (10)
-        if (text.isNotBlank() && !copiedList.contains(text) && !pinnedList.contains(text)) {
-            copiedList.add(0, text)
-            // Sửa: Thay đổi logic giới hạn để chỉ giữ lại 10 mục trong danh sách copied
-            while (copiedList.size > 10) {
-                copiedList.removeLast()
-            }
-            saveData()
-            Log.d("ClipboardDataManager", "addCopy: Added '$text'. New copied size: ${copiedList.size}")
-        } else {
-            Log.d("ClipboardDataManager", "addCopy: Did not add '$text' (blank, duplicate, or pinned).")
-        }
+    private fun saveToPrefs(ctx: Context) {
+        val shared = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        shared.edit().putString(KEY_COPIED, inMemory.joinToString("\n"))
+            .putString(KEY_PINNED, pinned.joinToString("\n"))
+            .apply()
     }
 
-    fun getCopiedList(): List<String> = copiedList.toList()
-    fun getPinnedList(): List<String> = pinnedList.toList()
-
-    fun pinText(text: String) {
-        if (!pinnedList.contains(text)) {
-            pinnedList.add(0, text)
-            // Sửa: Xóa mục đã ghim khỏi danh sách copied
-            copiedList.remove(text)
-            saveData()
-            Log.d("ClipboardDataManager", "pinText: Pinned '$text'.")
-        }
-    }
-
-    fun unpinText(text: String) {
-        pinnedList.remove(text)
-        // Sửa: Khi bỏ ghim, thêm mục đó lại vào đầu danh sách copied
-        copiedList.add(0, text)
-        saveData()
-        Log.d("ClipboardDataManager", "unpinText: Unpinned '$text'.")
-    }
-
-    fun removeText(text: String, isPinned: Boolean) {
-        if (isPinned) pinnedList.remove(text) else copiedList.remove(text)
-        saveData()
-        Log.d("ClipboardDataManager", "removeText: Removed '$text'. Is pinned: $isPinned")
-    }
-
-    fun editText(oldText: String, newText: String, isPinned: Boolean) {
-        removeText(oldText, isPinned)
-        if (isPinned) pinnedList.add(0, newText) else copiedList.add(0, newText)
-        saveData()
-        Log.d("ClipboardDataManager", "editText: Edited from '$oldText' to '$newText'. Is pinned: $isPinned")
+    private fun loadFromPrefs(ctx: Context) {
+        val shared = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        val raw = shared.getString(KEY_COPIED, "") ?: ""
+        val pr = shared.getString(KEY_PINNED, "") ?: ""
+        inMemory.clear()
+        pinned.clear()
+        if (raw.isNotEmpty()) inMemory.addAll(raw.split('\n').filter { it.isNotEmpty() })
+        if (pr.isNotEmpty()) pinned.addAll(pr.split('\n').filter { it.isNotEmpty() })
     }
 }
-

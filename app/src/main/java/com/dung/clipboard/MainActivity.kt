@@ -1,27 +1,32 @@
 package com.dung.clipboard
 
-import android.app.ActivityManager
-import android.content.BroadcastReceiver
-import android.content.Context
-import android.content.Intent
-import android.content.IntentFilter
-import android.net.Uri
-import android.os.Build
+import android.content.*
 import android.os.Bundle
 import android.provider.Settings
+import android.view.View
 import android.widget.Button
-import androidx.appcompat.app.AlertDialog
+import android.widget.ListView
+import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 
 class MainActivity : AppCompatActivity() {
 
-    private lateinit var toggleServiceButton: Button
+    companion object {
+        var isVisible = false
+        const val ACTION_CLIPBOARD_UPDATED = "com.dung.clipboard.CLIPBOARD_UPDATED"
+        const val ACTION_TOGGLE_FINISH = "com.dung.clipboard.TOGGLE_FINISH"
+    }
 
-    private val clipboardReceiver = object : BroadcastReceiver() {
+    private lateinit var tvStatus: TextView
+    private lateinit var lvCopied: ListView
+    private lateinit var lvPinned: ListView
+    private lateinit var btnRequestAccessibility: Button
+
+    private val receiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
-            val copiedData = intent?.getStringExtra("copied_data")
-            if (copiedData != null) {
-                // TODO: Cập nhật giao diện của MainActivity ở đây
+            when (intent?.action) {
+                ACTION_CLIPBOARD_UPDATED -> refreshList()
+                ACTION_TOGGLE_FINISH -> finish()
             }
         }
     }
@@ -30,69 +35,63 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        checkOverlayPermission() // Gọi hàm kiểm tra quyền
+        tvStatus = findViewById(R.id.tvStatus)
+        lvCopied = findViewById(R.id.lvCopied)
+        lvPinned = findViewById(R.id.lvPinned)
+        btnRequestAccessibility = findViewById(R.id.btnRequestAccessibility)
 
-        toggleServiceButton = findViewById(R.id.toggleServiceButton)
+        btnRequestAccessibility.setOnClickListener { openAccessibilitySettings() }
 
-        toggleServiceButton.setOnClickListener {
-            if (Settings.canDrawOverlays(this)) {
-                if (isServiceRunning(FloatingWidgetService::class.java)) {
-                    val intent = Intent(this, FloatingWidgetService::class.java)
-                    stopService(intent)
-                    toggleServiceButton.text = "Bật Clipboard Nổi"
-                } else {
-                    val intent = Intent(this, FloatingWidgetService::class.java)
-                    startService(intent)
-                    toggleServiceButton.text = "Tắt Clipboard Nổi"
-                }
-            } else {
-                checkOverlayPermission() // Yêu cầu quyền nếu chưa có
-            }
-        }
+        // Start services
+        startService(Intent(this, ClipboardService::class.java))
+        startService(Intent(this, FloatingWidgetService::class.java))
 
-        val clipboardServiceIntent = Intent(this, ClipboardService::class.java)
-        startService(clipboardServiceIntent)
+        registerReceiver(receiver, IntentFilter(ACTION_CLIPBOARD_UPDATED))
+        registerReceiver(receiver, IntentFilter(ACTION_TOGGLE_FINISH))
+
+        updateAccessibilityStatus()
+        refreshList()
     }
 
     override fun onResume() {
         super.onResume()
-        val filter = IntentFilter("com.dung.clipboard.CLIPBOARD_UPDATE")
-        registerReceiver(clipboardReceiver, filter)
+        isVisible = true
+        refreshList()
     }
 
     override fun onPause() {
         super.onPause()
-        unregisterReceiver(clipboardReceiver)
+        isVisible = false
     }
 
-    private fun checkOverlayPermission() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.canDrawOverlays(this)) {
-            AlertDialog.Builder(this)
-                .setTitle("Yêu cầu quyền")
-                .setMessage("Ứng dụng cần quyền 'Hiển thị trên các ứng dụng khác' để chạy cửa sổ nổi.")
-                .setPositiveButton("Đi đến cài đặt") { _, _ ->
-                    val intent = Intent(
-                        Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-                        Uri.parse("package:$packageName")
-                    )
-                    startActivity(intent)
-                }
-                .setNegativeButton("Hủy") { dialog, _ ->
-                    dialog.dismiss()
-                }
-                .create()
-                .show()
-        }
+    override fun onDestroy() {
+        super.onDestroy()
+        try { unregisterReceiver(receiver) } catch (e: Exception) {}
     }
-    
-    private fun isServiceRunning(serviceClass: Class<*>): Boolean {
-        val manager = getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
-        for (service in manager.getRunningServices(Integer.MAX_VALUE)) {
-            if (serviceClass.name == service.service.className) {
-                return true
-            }
+
+    private fun refreshList() {
+        val items = ClipboardDataManager.getCopiedList(this)
+        val adapter = android.widget.ArrayAdapter(this, android.R.layout.simple_list_item_1, items)
+        lvCopied.adapter = adapter
+
+        val pinned = ClipboardDataManager.getPinnedList(this)
+        val padapter = android.widget.ArrayAdapter(this, android.R.layout.simple_list_item_1, pinned)
+        lvPinned.adapter = padapter
+
+        tvStatus.text = if (items.isEmpty()) "Clipboard rỗng" else "Có ${items.size} mục"
+    }
+
+    private fun openAccessibilitySettings() {
+        val intent = Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
+        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
+        startActivity(intent)
+    }
+
+    private fun updateAccessibilityStatus() {
+        tvStatus.text = if (Utils.isAccessibilityServiceEnabled(this, MyAccessibilityService::class.java)) {
+            "Accessibility đã bật"
+        } else {
+            "Accessibility chưa bật"
         }
-        return false
     }
 }
-

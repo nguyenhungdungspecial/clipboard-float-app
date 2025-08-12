@@ -1,104 +1,92 @@
 package com.dung.clipboard
 
 import android.app.Service
-import android.content.BroadcastReceiver
-import android.content.Context
 import android.content.Intent
-import android.content.IntentFilter
 import android.graphics.PixelFormat
+import android.os.Build
 import android.os.IBinder
-import android.view.Gravity
-import android.view.LayoutInflater
-import android.view.MotionEvent
-import android.view.View
-import android.view.WindowManager
-import android.widget.ImageButton
-import android.widget.TextView
+import android.view.*
+import android.widget.ImageView
 
 class FloatingWidgetService : Service() {
 
     private lateinit var windowManager: WindowManager
-    private lateinit var floatingWidgetView: View
-    private lateinit var layoutParams: WindowManager.LayoutParams
-    private lateinit var clipboardTextView: TextView
-    private var initialX: Int = 0
-    private var initialY: Int = 0
-    private var initialTouchX: Float = 0f
-    private var initialTouchY: Float = 0f
-
-    private val clipboardReceiver = object : BroadcastReceiver() {
-        override fun onReceive(context: Context?, intent: Intent?) {
-            val copiedData = intent?.getStringExtra("copied_data")
-            if (copiedData != null) {
-                clipboardTextView.text = copiedData
-            }
-        }
-    }
-
-    override fun onBind(intent: Intent?): IBinder? {
-        return null
-    }
+    private var floatingView: View? = null
+    private var params: WindowManager.LayoutParams? = null
 
     override fun onCreate() {
         super.onCreate()
+        windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
+        addFloatingWidget()
+    }
 
-        windowManager = getSystemService(Context.WINDOW_SERVICE) as WindowManager
-        val inflater = getSystemService(Context.LAYOUT_INFLATER_SERVICE) as LayoutInflater
-        floatingWidgetView = inflater.inflate(R.layout.floating_widget_layout, null)
+    private fun addFloatingWidget() {
+        val inflater = getSystemService(LAYOUT_INFLATER_SERVICE) as LayoutInflater
+        floatingView = inflater.inflate(R.layout.floating_widget_layout, null)
 
-        clipboardTextView = floatingWidgetView.findViewById(R.id.clipboardTextView)
-        val closeButton = floatingWidgetView.findViewById<ImageButton>(R.id.closeButton)
+        val layoutFlag = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
+            WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
+        else
+            WindowManager.LayoutParams.TYPE_PHONE
 
-        layoutParams = WindowManager.LayoutParams(
+        params = WindowManager.LayoutParams(
             WindowManager.LayoutParams.WRAP_CONTENT,
             WindowManager.LayoutParams.WRAP_CONTENT,
-            WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
+            layoutFlag,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
             PixelFormat.TRANSLUCENT
         )
 
-        layoutParams.gravity = Gravity.TOP or Gravity.START
-        layoutParams.x = 0
-        layoutParams.y = 100
+        params!!.gravity = Gravity.TOP or Gravity.START
+        params!!.x = 20
+        params!!.y = 100
 
-        windowManager.addView(floatingWidgetView, layoutParams)
+        windowManager.addView(floatingView, params)
 
-        closeButton.setOnClickListener {
-            stopSelf()
-        }
+        val imgStar = floatingView!!.findViewById<ImageView>(R.id.btnStar)
+        imgStar.setOnClickListener { toggleMainActivity() }
 
-        floatingWidgetView.setOnTouchListener(object : View.OnTouchListener {
-            override fun onTouch(v: View?, event: MotionEvent?): Boolean {
-                when (event?.action) {
-                    MotionEvent.ACTION_DOWN -> {
-                        initialX = layoutParams.x
-                        initialY = layoutParams.y
-                        initialTouchX = event.rawX
-                        initialTouchY = event.rawY
-                        return true
-                    }
-                    MotionEvent.ACTION_MOVE -> {
-                        layoutParams.x = initialX + (event.rawX - initialTouchX).toInt()
-                        layoutParams.y = initialY + (event.rawY - initialTouchY).toInt()
-                        windowManager.updateViewLayout(floatingWidgetView, layoutParams)
-                        return true
-                    }
-                    else -> return false
+        // Drag to move
+        var initialX = 0
+        var initialY = 0
+        var initialTouchX = 0f
+        var initialTouchY = 0f
+
+        floatingView!!.setOnTouchListener { _, event ->
+            when (event.action) {
+                MotionEvent.ACTION_DOWN -> {
+                    initialX = params!!.x
+                    initialY = params!!.y
+                    initialTouchX = event.rawX
+                    initialTouchY = event.rawY
+                    true
                 }
+                MotionEvent.ACTION_MOVE -> {
+                    params!!.x = initialX + (event.rawX - initialTouchX).toInt()
+                    params!!.y = initialY + (event.rawY - initialTouchY).toInt()
+                    try { windowManager.updateViewLayout(floatingView, params) } catch (_: Exception) {}
+                    true
+                }
+                else -> false
             }
-        })
+        }
+    }
 
-        val filter = IntentFilter("com.dung.clipboard.CLIPBOARD_UPDATE")
-        registerReceiver(clipboardReceiver, filter)
+    private fun toggleMainActivity() {
+        if (MainActivity.isVisible) {
+            val intent = Intent(MainActivity.ACTION_TOGGLE_FINISH)
+            sendBroadcast(intent)
+        } else {
+            val intent = Intent(this, MainActivity::class.java)
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            startActivity(intent)
+        }
     }
 
     override fun onDestroy() {
         super.onDestroy()
-        unregisterReceiver(clipboardReceiver)
-
-        if (::floatingWidgetView.isInitialized) {
-            windowManager.removeView(floatingWidgetView)
-        }
+        try { if (floatingView != null) windowManager.removeView(floatingView) } catch (_: Exception) {}
     }
-}
 
+    override fun onBind(intent: Intent?) = null
+}

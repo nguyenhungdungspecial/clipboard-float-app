@@ -1,45 +1,40 @@
 package com.dung.clipboard
 
 import android.app.Service
-import android.content.ClipData
-import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.os.IBinder
+import android.text.TextUtils
 import android.util.Log
 
 class ClipboardService : Service() {
 
-    private lateinit var clipboardManager: ClipboardManager
-
-    private val onPrimaryClipChangedListener = ClipboardManager.OnPrimaryClipChangedListener {
-        val clipData = clipboardManager.primaryClip
-        if (clipData != null && clipData.itemCount > 0) {
-            val item = clipData.getItemAt(0)
-            val copiedText = item.text?.toString()
-
-            if (copiedText != null) {
-                Log.d("ClipboardService", "New text copied: $copiedText")
-
-                val intent = Intent("com.dung.clipboard.CLIPBOARD_UPDATE")
-                intent.putExtra("copied_data", copiedText)
+    private lateinit var clipboard: android.content.ClipboardManager
+    private val listener = android.content.ClipboardManager.OnPrimaryClipChangedListener {
+        try {
+            val clip = clipboard.primaryClip
+            val item = clip?.getItemAt(0)
+            val text = item?.coerceToText(this)?.toString() ?: ""
+            if (!TextUtils.isEmpty(text)) {
+                ClipboardDataManager.addItem(applicationContext, text)
+                val intent = Intent(MainActivity.ACTION_CLIPBOARD_UPDATED)
                 sendBroadcast(intent)
             }
+        } catch (e: Exception) {
+            Log.e("ClipboardService", "error reading clip", e)
         }
     }
 
     override fun onCreate() {
         super.onCreate()
-        clipboardManager = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-        clipboardManager.addPrimaryClipChangedListener(onPrimaryClipChangedListener)
-    }
-
-    override fun onBind(intent: Intent?): IBinder? {
-        return null
+        clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+        clipboard.addPrimaryClipChangedListener(listener)
     }
 
     override fun onDestroy() {
         super.onDestroy()
-        clipboardManager.removePrimaryClipChangedListener(onPrimaryClipChangedListener)
+        try { clipboard.removePrimaryClipChangedListener(listener) } catch (_: Exception) {}
     }
+
+    override fun onBind(intent: Intent?) = null
 }
