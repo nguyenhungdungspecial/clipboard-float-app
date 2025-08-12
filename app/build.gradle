@@ -4,7 +4,7 @@ plugins {
 }
 
 android {
-    namespace 'com.dung.clipboard'
+    package 'como.dung.clipboard'
     compileSdk 34
 
     defaultConfig {
