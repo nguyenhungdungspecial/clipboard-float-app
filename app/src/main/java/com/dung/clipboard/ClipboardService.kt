@@ -1,40 +1,56 @@
 package com.dung.clipboard
 
+import android.app.Notification
+import android.app.NotificationChannel
+import android.app.NotificationManager
 import android.app.Service
+import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
+import android.os.Build
 import android.os.IBinder
-import android.text.TextUtils
-import android.util.Log
 
 class ClipboardService : Service() {
 
-    private lateinit var clipboard: android.content.ClipboardManager
-    private val listener = android.content.ClipboardManager.OnPrimaryClipChangedListener {
-        try {
-            val clip = clipboard.primaryClip
-            val item = clip?.getItemAt(0)
-            val text = item?.coerceToText(this)?.toString() ?: ""
-            if (!TextUtils.isEmpty(text)) {
-                ClipboardDataManager.addItem(applicationContext, text)
-                val intent = Intent(MainActivity.ACTION_CLIPBOARD_UPDATED)
-                sendBroadcast(intent)
-            }
-        } catch (e: Exception) {
-            Log.e("ClipboardService", "error reading clip", e)
-        }
-    }
+    private lateinit var clipboardManager: ClipboardManager
 
     override fun onCreate() {
         super.onCreate()
-        clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
-        clipboard.addPrimaryClipChangedListener(listener)
+        createNotificationChannel()
+        startForeground(1, getNotification())
+
+        clipboardManager = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        clipboardManager.addPrimaryClipChangedListener {
+            val clip = clipboardManager.primaryClip
+            val item = clip?.getItemAt(0)?.text?.toString()
+            if (!item.isNullOrEmpty()) {
+                val intent = Intent(this, ClipboardActivity::class.java)
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                intent.putExtra("new_clip", item)
+                startActivity(intent)
+            }
+        }
     }
 
-    override fun onDestroy() {
-        super.onDestroy()
-        try { clipboard.removePrimaryClipChangedListener(listener) } catch (_: Exception) {}
+    private fun getNotification(): Notification {
+        return Notification.Builder(this, "clipboard_channel")
+            .setContentTitle("Clipboard Listener")
+            .setContentText("Đang theo dõi clipboard...")
+            .setSmallIcon(android.R.drawable.ic_menu_info_details)
+            .build()
     }
 
-    override fun onBind(intent: Intent?) = null
+    private fun createNotificationChannel() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val channel = NotificationChannel(
+                "clipboard_channel",
+                "Clipboard Service",
+                NotificationManager.IMPORTANCE_LOW
+            )
+            val manager = getSystemService(NotificationManager::class.java)
+            manager.createNotificationChannel(channel)
+        }
+    }
+
+    override fun onBind(intent: Intent?): IBinder? = null
 }
