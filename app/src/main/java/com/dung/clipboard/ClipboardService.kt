@@ -22,25 +22,23 @@ class ClipboardService : Service() {
         clipboardManager = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
         clipboardManager.addPrimaryClipChangedListener {
             val clip = clipboardManager.primaryClip
-            val item = clip?.getItemAt(0)?.coerceToText(this)?.toString()
-            if (!item.isNullOrEmpty()) {
-                // Send intent to activity (will start or deliver to running activity)
-                val intent = Intent(this, ClipboardActivity::class.java)
-                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
-                intent.putExtra("new_clip", item)
-                startActivity(intent)
+            val txt = clip?.getItemAt(0)?.coerceToText(this)?.toString()
+            if (!txt.isNullOrBlank()) {
+                val i = Intent(this, ClipboardActivity::class.java)
+                i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+                i.putExtra("new_clip", txt)
+                startActivity(i)
             }
         }
     }
 
     private fun getNotification(): Notification {
-        val builder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+        val builder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
             Notification.Builder(this, "clipboard_channel")
-        } else {
-            Notification.Builder(this)
-        }
+        else Notification.Builder(this)
+
         builder.setContentTitle("Clipboard Listener")
-            .setContentText("Đang theo dõi clipboard")
+            .setContentText("Đang theo dõi clipboard…")
             .setSmallIcon(android.R.drawable.ic_menu_edit)
         return builder.build()
     }
@@ -48,7 +46,11 @@ class ClipboardService : Service() {
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val nm = getSystemService(NotificationManager::class.java)
-            val channel = NotificationChannel("clipboard_channel", "Clipboard Service", NotificationManager.IMPORTANCE_LOW)
+            val channel = NotificationChannel(
+                "clipboard_channel",
+                "Clipboard Service",
+                NotificationManager.IMPORTANCE_LOW
+            )
             nm.createNotificationChannel(channel)
         }
     }

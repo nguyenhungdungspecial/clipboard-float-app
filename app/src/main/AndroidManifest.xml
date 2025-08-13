@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
+    <!-- Quyền cần thiết -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
@@ -22,15 +23,31 @@
             </intent-filter>
         </activity>
 
+        <!-- Service nghe clipboard (foreground) -->
         <service
             android:name=".ClipboardService"
             android:exported="false"
             android:foregroundServiceType="dataSync" />
 
+        <!-- Service tạo icon ngôi sao nổi -->
         <service
             android:name=".FloatingWidgetService"
             android:exported="false" />
 
+        <!-- Accessibility Service: để app xuất hiện trong phần Trợ năng -->
+        <service
+            android:name=".MyAccessibilityService"
+            android:exported="false"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
+            <intent-filter>
+                <action android:name="android.accessibilityservice.AccessibilityService" />
+            </intent-filter>
+            <meta-data
+                android:name="android.accessibilityservice"
+                android:resource="@xml/accessibility_service_config" />
+        </service>
+
+        <!-- Tùy chọn: tự khởi động sau khi bật máy (nếu cần) -->
         <receiver
             android:name=".BootReceiver"
             android:enabled="true"

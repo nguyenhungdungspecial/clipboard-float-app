@@ -10,12 +10,17 @@ import android.widget.ImageView
 
 class FloatingWidgetService : Service() {
 
+    companion object {
+        @Volatile var isRunning = false
+    }
+
     private var windowManager: WindowManager? = null
     private var floatingView: View? = null
     private var params: WindowManager.LayoutParams? = null
 
     override fun onCreate() {
         super.onCreate()
+        isRunning = true
         windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
         addFloatingWidget()
     }
@@ -38,12 +43,17 @@ class FloatingWidgetService : Service() {
         )
         params!!.gravity = Gravity.TOP or Gravity.START
         params!!.x = 30
-        params!!.y = 100
+        params!!.y = 120
 
         windowManager!!.addView(floatingView, params)
 
         val imgStar = floatingView!!.findViewById<ImageView>(R.id.btnStar)
-        imgStar.setOnClickListener { toggleMainActivity() }
+        imgStar.setOnClickListener {
+            // click để mở/đóng giao diện
+            val i = Intent(this, ClipboardActivity::class.java)
+            i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+            startActivity(i)
+        }
 
         // Drag to move
         var initialX = 0
@@ -62,9 +72,7 @@ class FloatingWidgetService : Service() {
                 MotionEvent.ACTION_MOVE -> {
                     params!!.x = initialX + (event.rawX - touchX).toInt()
                     params!!.y = initialY + (event.rawY - touchY).toInt()
-                    try {
-                        windowManager!!.updateViewLayout(floatingView, params)
-                    } catch (_: Exception) { }
+                    try { windowManager!!.updateViewLayout(floatingView, params) } catch (_: Exception) {}
                     true
                 }
                 else -> false
@@ -72,18 +80,10 @@ class FloatingWidgetService : Service() {
         }
     }
 
-    private fun toggleMainActivity() {
-        // if ClipboardActivity running, send broadcast to finish (simpler: start activity)
-        val intent = Intent(this, ClipboardActivity::class.java)
-        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
-        startActivity(intent)
-    }
-
     override fun onDestroy() {
+        isRunning = false
+        try { if (floatingView != null) windowManager?.removeView(floatingView) } catch (_: Exception) {}
         super.onDestroy()
-        try {
-            if (floatingView != null) windowManager?.removeView(floatingView)
-        } catch (_: Exception) {}
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
