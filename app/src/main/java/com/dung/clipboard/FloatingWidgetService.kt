@@ -10,7 +10,7 @@ import android.widget.ImageView
 
 class FloatingWidgetService : Service() {
 
-    private lateinit var windowManager: WindowManager
+    private var windowManager: WindowManager? = null
     private var floatingView: View? = null
     private var params: WindowManager.LayoutParams? = null
 
@@ -36,12 +36,11 @@ class FloatingWidgetService : Service() {
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
             PixelFormat.TRANSLUCENT
         )
-
         params!!.gravity = Gravity.TOP or Gravity.START
-        params!!.x = 20
+        params!!.x = 30
         params!!.y = 100
 
-        windowManager.addView(floatingView, params)
+        windowManager!!.addView(floatingView, params)
 
         val imgStar = floatingView!!.findViewById<ImageView>(R.id.btnStar)
         imgStar.setOnClickListener { toggleMainActivity() }
@@ -49,22 +48,23 @@ class FloatingWidgetService : Service() {
         // Drag to move
         var initialX = 0
         var initialY = 0
-        var initialTouchX = 0f
-        var initialTouchY = 0f
-
+        var touchX = 0f
+        var touchY = 0f
         floatingView!!.setOnTouchListener { _, event ->
             when (event.action) {
                 MotionEvent.ACTION_DOWN -> {
                     initialX = params!!.x
                     initialY = params!!.y
-                    initialTouchX = event.rawX
-                    initialTouchY = event.rawY
+                    touchX = event.rawX
+                    touchY = event.rawY
                     true
                 }
                 MotionEvent.ACTION_MOVE -> {
-                    params!!.x = initialX + (event.rawX - initialTouchX).toInt()
-                    params!!.y = initialY + (event.rawY - initialTouchY).toInt()
-                    try { windowManager.updateViewLayout(floatingView, params) } catch (_: Exception) {}
+                    params!!.x = initialX + (event.rawX - touchX).toInt()
+                    params!!.y = initialY + (event.rawY - touchY).toInt()
+                    try {
+                        windowManager!!.updateViewLayout(floatingView, params)
+                    } catch (_: Exception) { }
                     true
                 }
                 else -> false
@@ -73,20 +73,18 @@ class FloatingWidgetService : Service() {
     }
 
     private fun toggleMainActivity() {
-        if (MainActivity.isVisible) {
-            val intent = Intent(MainActivity.ACTION_TOGGLE_FINISH)
-            sendBroadcast(intent)
-        } else {
-            val intent = Intent(this, MainActivity::class.java)
-            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            startActivity(intent)
-        }
+        // if ClipboardActivity running, send broadcast to finish (simpler: start activity)
+        val intent = Intent(this, ClipboardActivity::class.java)
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+        startActivity(intent)
     }
 
     override fun onDestroy() {
         super.onDestroy()
-        try { if (floatingView != null) windowManager.removeView(floatingView) } catch (_: Exception) {}
+        try {
+            if (floatingView != null) windowManager?.removeView(floatingView)
+        } catch (_: Exception) {}
     }
 
-    override fun onBind(intent: Intent?) = null
+    override fun onBind(intent: Intent?): IBinder? = null
 }

@@ -1,2 +1,2 @@
-rootProject.name = "ClipboardFloatApp"
+rootProject.name = "clipboard-float-app"
 include ':app'

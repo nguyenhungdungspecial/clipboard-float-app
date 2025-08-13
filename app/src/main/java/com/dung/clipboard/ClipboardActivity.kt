@@ -1,44 +1,80 @@
 package com.dung.clipboard
 
+import android.content.Context
+import android.content.Intent
 import android.content.SharedPreferences
 import android.os.Bundle
+import android.widget.Button
+import android.widget.ListView
+import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
-import androidx.recyclerview.widget.LinearLayoutManager
-import com.dung.clipboard.databinding.ActivityClipboardBinding
 
 class ClipboardActivity : AppCompatActivity() {
 
-    private lateinit var binding: ActivityClipboardBinding
     private lateinit var prefs: SharedPreferences
-    private lateinit var adapter: ClipboardAdapter
+    private lateinit var lvCopied: ListView
+    private lateinit var tvStatus: TextView
+    private lateinit var btnClear: Button
+    private lateinit var adapter: android.widget.ArrayAdapter<String>
+    private val items = mutableListOf<String>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        binding = ActivityClipboardBinding.inflate(layoutInflater)
-        setContentView(binding.root)
+        setContentView(R.layout.activity_main) // reuse activity_main
 
-        prefs = getSharedPreferences("clipboard_data", MODE_PRIVATE)
+        prefs = getSharedPreferences("clipboard_data", Context.MODE_PRIVATE)
 
-        val savedItems = prefs.getStringSet("items", emptySet())?.toMutableList() ?: mutableListOf()
-        adapter = ClipboardAdapter(savedItems)
+        lvCopied = findViewById(R.id.lvCopied)
+        tvStatus = findViewById(R.id.tvStatus)
+        btnClear = findViewById(R.id.btnClear)
 
-        binding.recyclerView.layoutManager = LinearLayoutManager(this)
-        binding.recyclerView.adapter = adapter
+        loadItems()
+        adapter = android.widget.ArrayAdapter(this, android.R.layout.simple_list_item_1, items)
+        lvCopied.adapter = adapter
+        updateStatus()
 
-        // Nút xóa toàn bộ clipboard history
-        binding.btnClear.setOnClickListener {
-            savedItems.clear()
+        // Handle possible new clip sent by service
+        val newClip = intent.getStringExtra("new_clip")
+        if (!newClip.isNullOrEmpty()) {
+            addClipboardItem(newClip)
+        }
+
+        btnClear.setOnClickListener {
+            items.clear()
+            saveItems()
             adapter.notifyDataSetChanged()
-            prefs.edit().putStringSet("items", savedItems.toSet()).apply()
+            updateStatus()
         }
     }
 
+    override fun onNewIntent(intent: Intent?) {
+        super.onNewIntent(intent)
+        // Called if activity is already running and service starts it again
+        val newClip = intent?.getStringExtra("new_clip")
+        if (!newClip.isNullOrEmpty()) addClipboardItem(newClip)
+    }
+
+    private fun loadItems() {
+        val set = prefs.getStringSet("items", emptySet()) ?: emptySet()
+        items.clear()
+        items.addAll(set.toList().reversed()) // newest first
+    }
+
+    private fun saveItems() {
+        prefs.edit().putStringSet("items", items.reversed().toSet()).apply()
+    }
+
     fun addClipboardItem(text: String) {
-        val savedItems = prefs.getStringSet("items", emptySet())?.toMutableList() ?: mutableListOf()
-        if (!savedItems.contains(text)) {
-            savedItems.add(0, text)
-            prefs.edit().putStringSet("items", savedItems.toSet()).apply()
-            adapter.updateData(savedItems)
-        }
+        if (text.isBlank()) return
+        if (items.isNotEmpty() && items[0] == text) return
+        items.add(0, text)
+        if (items.size > 200) items.removeLast()
+        saveItems()
+        adapter.notifyDataSetChanged()
+        updateStatus()
+    }
+
+    private fun updateStatus() {
+        tvStatus.text = if (items.isEmpty()) "Clipboard rỗng" else "Có ${items.size} mục"
     }
 }

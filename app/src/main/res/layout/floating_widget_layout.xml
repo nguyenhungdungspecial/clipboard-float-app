@@ -10,6 +10,6 @@
         android:layout_height="60dp"
         android:src="@drawable/ic_star"
         android:contentDescription="Star Toggle"
-        android:background="@android:color/transparent"/>
+        android:background="@android:color/transparent" />
 
 </FrameLayout>
