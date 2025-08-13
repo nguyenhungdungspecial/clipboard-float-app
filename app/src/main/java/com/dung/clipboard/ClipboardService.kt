@@ -6,54 +6,51 @@ import android.app.NotificationManager
 import android.app.Service
 import android.content.ClipboardManager
 import android.content.Context
-import android.content.Intent
 import android.os.Build
 import android.os.IBinder
 
+/**
+ * Foreground service lắng nghe clipboard và lưu vào ClipboardDataManager.
+ * Hoạt động ngay cả khi app/Activity đang đóng.
+ */
 class ClipboardService : Service() {
 
-    private lateinit var clipboardManager: ClipboardManager
+    private lateinit var cm: ClipboardManager
 
     override fun onCreate() {
         super.onCreate()
-        createNotificationChannel()
-        startForeground(1001, getNotification())
+        createChannelIfNeeded()
+        startForeground(1001, buildNotification())
 
-        clipboardManager = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-        clipboardManager.addPrimaryClipChangedListener {
-            val clip = clipboardManager.primaryClip
-            val txt = clip?.getItemAt(0)?.coerceToText(this)?.toString()
-            if (!txt.isNullOrBlank()) {
-                val i = Intent(this, ClipboardActivity::class.java)
-                i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
-                i.putExtra("new_clip", txt)
-                startActivity(i)
-            }
+        cm = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        cm.addPrimaryClipChangedListener {
+            val txt = cm.primaryClip?.getItemAt(0)?.coerceToText(this)?.toString() ?: return@addPrimaryClipChangedListener
+            ClipboardDataManager.addItem(this, txt)
         }
     }
 
-    private fun getNotification(): Notification {
-        val builder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
+    private fun buildNotification(): Notification {
+        val b = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
             Notification.Builder(this, "clipboard_channel")
         else Notification.Builder(this)
 
-        builder.setContentTitle("Clipboard Listener")
+        return b.setSmallIcon(android.R.drawable.ic_menu_edit)
+            .setContentTitle("Clipboard Listener")
             .setContentText("Đang theo dõi clipboard…")
-            .setSmallIcon(android.R.drawable.ic_menu_edit)
-        return builder.build()
+            .build()
     }
 
-    private fun createNotificationChannel() {
+    private fun createChannelIfNeeded() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val nm = getSystemService(NotificationManager::class.java)
-            val channel = NotificationChannel(
+            val ch = NotificationChannel(
                 "clipboard_channel",
                 "Clipboard Service",
                 NotificationManager.IMPORTANCE_LOW
             )
-            nm.createNotificationChannel(channel)
+            nm.createNotificationChannel(ch)
         }
     }
 
-    override fun onBind(intent: Intent?): IBinder? = null
+    override fun onBind(intent: android.content.Intent?): IBinder? = null
 }

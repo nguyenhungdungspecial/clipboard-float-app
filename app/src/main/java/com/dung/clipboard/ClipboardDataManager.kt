@@ -1,59 +1,47 @@
 package com.dung.clipboard
 
 import android.content.Context
+import android.content.Intent
 
+/**
+ * Lưu lịch sử clipboard vào SharedPreferences (giữ thứ tự, giới hạn 200 mục)
+ * và phát broadcast để UI cập nhật.
+ */
 object ClipboardDataManager {
-    private const val PREFS = "clipboard_prefs"
-    private const val KEY_COPIED = "copied_list"
-    private const val KEY_PINNED = "pinned_list"
+    private const val PREF = "clipboard_data"
+    private const val KEY = "items_joined"
+    private const val SEP = "\u0001" // ít gặp trong text người dùng
 
-    private val inMemory = mutableListOf<String>()
-    private val pinned = mutableListOf<String>()
-
-    fun addItem(ctx: Context, text: String) {
-        synchronized(this) {
-            if (inMemory.isNotEmpty() && inMemory[0] == text) return
-            inMemory.add(0, text)
-            if (inMemory.size > 200) inMemory.removeAt(inMemory.size - 1)
-            saveToPrefs(ctx)
-        }
+    fun getItems(ctx: Context): MutableList<String> {
+        val joined = ctx.getSharedPreferences(PREF, Context.MODE_PRIVATE)
+            .getString(KEY, "") ?: ""
+        if (joined.isEmpty()) return mutableListOf()
+        return joined.split(SEP).filter { it.isNotBlank() }.toMutableList()
     }
 
-    fun getCopiedList(ctx: Context): List<String> {
-        if (inMemory.isEmpty()) loadFromPrefs(ctx)
-        return inMemory.toList()
+    fun saveItems(ctx: Context, list: List<String>) {
+        val joined = list.joinToString(SEP)
+        ctx.getSharedPreferences(PREF, Context.MODE_PRIVATE)
+            .edit().putString(KEY, joined).apply()
+        ctx.sendBroadcast(Intent(ACTION_ITEMS_UPDATED))
     }
 
-    fun getPinnedList(ctx: Context): List<String> {
-        if (pinned.isEmpty()) loadFromPrefs(ctx)
-        return pinned.toList()
+    fun addItem(ctx: Context, text: String, max: Int = 200) {
+        val t = text.trim()
+        if (t.isEmpty()) return
+        val list = getItems(ctx)
+        // tránh trùng mục mới nhất
+        if (list.firstOrNull() == t) return
+        list.add(0, t)
+        while (list.size > max) list.removeLast()
+        saveItems(ctx, list)
     }
 
-    fun pinItem(ctx: Context, text: String) {
-        if (!pinned.contains(text)) {
-            pinned.add(0, text)
-            saveToPrefs(ctx)
-        }
-    }
-
-    fun unpinItem(ctx: Context, text: String) {
-        if (pinned.remove(text)) saveToPrefs(ctx)
-    }
-
-    private fun saveToPrefs(ctx: Context) {
-        val shared = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-        shared.edit().putString(KEY_COPIED, inMemory.joinToString("\n"))
-            .putString(KEY_PINNED, pinned.joinToString("\n"))
-            .apply()
-    }
-
-    private fun loadFromPrefs(ctx: Context) {
-        val shared = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-        val raw = shared.getString(KEY_COPIED, "") ?: ""
-        val pr = shared.getString(KEY_PINNED, "") ?: ""
-        inMemory.clear()
-        pinned.clear()
-        if (raw.isNotEmpty()) inMemory.addAll(raw.split('\n').filter { it.isNotEmpty() })
-        if (pr.isNotEmpty()) pinned.addAll(pr.split('\n').filter { it.isNotEmpty() })
+    fun clear(ctx: Context) {
+        saveItems(ctx, emptyList())
     }
 }
+
+/** Broadcast actions dùng chung giữa Service & Activity */
+const val ACTION_ITEMS_UPDATED = "com.dung.clipboard.ACTION_ITEMS_UPDATED"
+const val ACTION_CLOSE_ACTIVITY = "com.dung.clipboard.ACTION_CLOSE_ACTIVITY"
