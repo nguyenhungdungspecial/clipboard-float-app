@@ -1,97 +1,85 @@
 package com.dung.clipboard
 
-import android.content.*
 import android.os.Bundle
-import android.provider.Settings
-import android.view.View
-import android.widget.Button
-import android.widget.ListView
-import android.widget.TextView
+import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
+import com.dung.clipboard.utils.Utils
 
 class MainActivity : AppCompatActivity() {
 
-    companion object {
-        var isVisible = false
-        const val ACTION_CLIPBOARD_UPDATED = "com.dung.clipboard.CLIPBOARD_UPDATED"
-        const val ACTION_TOGGLE_FINISH = "com.dung.clipboard.TOGGLE_FINISH"
-    }
+    private lateinit var listCopied: ListView
+    private lateinit var listPinned: ListView
+    private lateinit var btnPin: Button
+    private lateinit var btnUnpin: Button
+    private lateinit var btnClear: Button
 
-    private lateinit var tvStatus: TextView
-    private lateinit var lvCopied: ListView
-    private lateinit var lvPinned: ListView
-    private lateinit var btnRequestAccessibility: Button
+    private lateinit var copiedAdapter: ArrayAdapter<String>
+    private lateinit var pinnedAdapter: ArrayAdapter<String>
 
-    private val receiver = object : BroadcastReceiver() {
-        override fun onReceive(context: Context?, intent: Intent?) {
-            when (intent?.action) {
-                ACTION_CLIPBOARD_UPDATED -> refreshList()
-                ACTION_TOGGLE_FINISH -> finish()
-            }
-        }
-    }
+    private var selectedCopied: String? = null
+    private var selectedPinned: String? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        tvStatus = findViewById(R.id.tvStatus)
-        lvCopied = findViewById(R.id.lvCopied)
-        lvPinned = findViewById(R.id.lvPinned)
-        btnRequestAccessibility = findViewById(R.id.btnRequestAccessibility)
+        listCopied = findViewById(R.id.list_copied)
+        listPinned = findViewById(R.id.list_pinned)
+        btnPin = findViewById(R.id.btn_pin)
+        btnUnpin = findViewById(R.id.btn_unpin)
+        btnClear = findViewById(R.id.btn_clear)
 
-        btnRequestAccessibility.setOnClickListener { openAccessibilitySettings() }
+        // Lấy dữ liệu
+        val copiedData: MutableList<String> = Utils.getCopiedList(this)
+        val pinnedData: MutableList<String> = Utils.getPinnedList(this)
 
-        // Start services
-        startService(Intent(this, ClipboardService::class.java))
-        startService(Intent(this, FloatingWidgetService::class.java))
+        // Adapter rõ ràng kiểu List<String> để tránh overload ambiguity
+        copiedAdapter = ArrayAdapter(this, android.R.layout.simple_list_item_1, copiedData)
+        pinnedAdapter = ArrayAdapter(this, android.R.layout.simple_list_item_1, pinnedData)
 
-        registerReceiver(receiver, IntentFilter(ACTION_CLIPBOARD_UPDATED))
-        registerReceiver(receiver, IntentFilter(ACTION_TOGGLE_FINISH))
+        listCopied.adapter = copiedAdapter
+        listPinned.adapter = pinnedAdapter
 
-        updateAccessibilityStatus()
-        refreshList()
-    }
-
-    override fun onResume() {
-        super.onResume()
-        isVisible = true
-        refreshList()
-    }
-
-    override fun onPause() {
-        super.onPause()
-        isVisible = false
-    }
-
-    override fun onDestroy() {
-        super.onDestroy()
-        try { unregisterReceiver(receiver) } catch (e: Exception) {}
-    }
-
-    private fun refreshList() {
-        val items = ClipboardDataManager.getCopiedList(this)
-        val adapter = android.widget.ArrayAdapter(this, android.R.layout.simple_list_item_1, items)
-        lvCopied.adapter = adapter
-
-        val pinned = ClipboardDataManager.getPinnedList(this)
-        val padapter = android.widget.ArrayAdapter(this, android.R.layout.simple_list_item_1, pinned)
-        lvPinned.adapter = padapter
-
-        tvStatus.text = if (items.isEmpty()) "Clipboard rỗng" else "Có ${items.size} mục"
-    }
-
-    private fun openAccessibilitySettings() {
-        val intent = Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
-        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
-        startActivity(intent)
-    }
-
-    private fun updateAccessibilityStatus() {
-        tvStatus.text = if (Utils.isAccessibilityServiceEnabled(this, MyAccessibilityService::class.java)) {
-            "Accessibility đã bật"
-        } else {
-            "Accessibility chưa bật"
+        listCopied.setOnItemClickListener { _, _, position, _ ->
+            selectedCopied = copiedAdapter.getItem(position)
         }
+
+        listPinned.setOnItemClickListener { _, _, position, _ ->
+            selectedPinned = pinnedAdapter.getItem(position)
+        }
+
+        btnPin.setOnClickListener {
+            val value = selectedCopied ?: return@setOnClickListener
+            Utils.pin(this, value)
+            refreshPinned()
+            Toast.makeText(this, "Đã ghim", Toast.LENGTH_SHORT).show()
+        }
+
+        btnUnpin.setOnClickListener {
+            val value = selectedPinned ?: return@setOnClickListener
+            Utils.unpin(this, value)
+            refreshPinned()
+            Toast.makeText(this, "Đã bỏ ghim", Toast.LENGTH_SHORT).show()
+        }
+
+        btnClear.setOnClickListener {
+            Utils.clearCopied(this)
+            refreshCopied()
+            Toast.makeText(this, "Đã xóa danh sách đã sao chép", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun refreshCopied() {
+        copiedAdapter.clear()
+        copiedAdapter.addAll(Utils.getCopiedList(this))
+        copiedAdapter.notifyDataSetChanged()
+        selectedCopied = null
+    }
+
+    private fun refreshPinned() {
+        pinnedAdapter.clear()
+        pinnedAdapter.addAll(Utils.getPinnedList(this))
+        pinnedAdapter.notifyDataSetChanged()
+        selectedPinned = null
     }
 }

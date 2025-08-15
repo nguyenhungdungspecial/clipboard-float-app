@@ -1,24 +1,24 @@
 package com.dung.clipboard
 
 import android.content.Context
+import android.util.AttributeSet
 import android.view.LayoutInflater
-import android.view.View
+import android.widget.FrameLayout
 import android.widget.TextView
-import android.widget.Toast
 
-object FloatingWidget {
-    private var textView: TextView? = null
+class FloatingWidget @JvmOverloads constructor(
+    context: Context,
+    attrs: AttributeSet? = null
+) : FrameLayout(context, attrs) {
 
-    fun create(context: Context): View {
-        val view = LayoutInflater.from(context).inflate(R.layout.floating_widget, null)
-        textView = view.findViewById(R.id.clipboard_text)
-        view.setOnClickListener {
-            Toast.makeText(context, "Floating Widget clicked", Toast.LENGTH_SHORT).show()
-        }
-        return view
+    private val tv: TextView
+
+    init {
+        LayoutInflater.from(context).inflate(R.layout.floating_widget_layout, this, true)
+        tv = findViewById(R.id.clipboard_text)
     }
 
-    fun updateClipboardText(text: String) {
-        textView?.text = text
+    fun setText(text: String) {
+        tv.text = text
     }
 }

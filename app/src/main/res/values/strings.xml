@@ -1,4 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Clipboard Float App</string>
+    <string name="app_name">Clipboard Float</string>
+
+    <string name="title_copied">Đã sao chép</string>
+    <string name="title_pinned">Đã ghim</string>
+    <string name="btn_clear">Xóa</string>
+    <string name="btn_pin">Ghim</string>
+    <string name="btn_unpin">Bỏ ghim</string>
+    <string name="empty_list">Trống</string>
 </resources>
