@@ -2,17 +2,12 @@ package com.dung.clipboard
 
 import android.accessibilityservice.AccessibilityService
 import android.view.accessibility.AccessibilityEvent
-import android.util.Log
 
+/**
+ * Có mục đích chính: để app xuất hiện trong Settings -> Accessibility
+ * (Service không cần làm gì thêm cho tính năng copy hiện tại).
+ */
 class MyAccessibilityService : AccessibilityService() {
-
-    override fun onAccessibilityEvent(event: AccessibilityEvent?) {
-        if (event != null) {
-            Log.d("AccessibilityService", "Event: ${event.eventType}")
-        }
-    }
-
-    override fun onInterrupt() {
-        Log.d("AccessibilityService", "Service Interrupted")
-    }
+    override fun onAccessibilityEvent(event: AccessibilityEvent?) { /* no-op */ }
+    override fun onInterrupt() { /* no-op */ }
 }
