@@ -1,30 +1,26 @@
 #!/bin/bash
-# Script dọn project Android
-# Dùng trong thư mục gốc của project
+echo "=== Dọn dẹp dự án Android ==="
 
-echo "=== DỌN DỰ ÁN ANDROID ==="
-
-# 1. Xóa thư mục build (Gradle sẽ tự tạo lại khi build)
-echo "Xóa thư mục build/..."
-rm -rf build
+# Xóa thư mục build
+echo "Xóa thư mục build..."
 rm -rf app/build
 
-# 2. Xóa file/tệp tin thừa
-echo "Xóa file báo cáo và liệt kê thư mục..."
-rm -f tree.txt
-rm -f build/reports/problems/problems-report.html
+# Xóa thư mục build Gradle
+echo "Xóa cache Gradle..."
+rm -rf .gradle
+rm -rf build
 
-# 3. Xóa thư mục code thử nghiệm hoặc lỗi (nếu có)
-echo "Xóa thư mục cd, {, Compilation, Run, Task, touch..."
-rm -rf app/src/main/cd
-rm -rf app/src/main/java/com/dung/clipboard/{
-rm -rf app/src/main/java/com/dung/clipboard/Compilation
-rm -rf app/src/main/java/com/dung/clipboard/Run
-rm -rf app/src/main/java/com/dung/clipboard/Task
-rm -rf app/src/main/java/com/dung/clipboard/touch
+# Xóa file log nếu có
+echo "Xóa file log..."
+find . -name "*.log" -type f -delete
 
-# 4. Xóa cache Gradle nếu muốn build sạch hoàn toàn
-echo "Xóa cache Gradle (tùy chọn)..."
-rm -rf ~/.gradle/caches
+# Xóa file tạm của hệ thống
+echo "Xóa file tạm..."
+find . -name "*~" -type f -delete
 
-echo "=== HOÀN TẤT DỌN DỰ ÁN ==="
+# Xóa output APK cũ
+echo "Xóa APK cũ..."
+rm -rf app/release
+rm -rf app/debug
+
+echo "✅ Dọn dẹp hoàn tất!"
