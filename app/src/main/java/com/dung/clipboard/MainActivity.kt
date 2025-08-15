@@ -1,85 +1,313 @@
 package com.dung.clipboard
 
+import android.app.Activity
+import android.content.ClipboardManager
+import android.content.Context
+import android.content.Intent
+import android.graphics.Color
+import android.net.Uri
+import android.os.Build
 import android.os.Bundle
+import android.provider.Settings
+import android.util.Log
+import android.view.ContextMenu // Đảm bảo import ContextMenu
+import android.view.MenuItem // Đảm bảo import MenuItem
+import android.view.View
+import android.view.ViewGroup
 import android.widget.*
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
-import com.dung.clipboard.utils.Utils
+import com.dung.clipboard.databinding.ActivityMainBinding
 
 class MainActivity : AppCompatActivity() {
 
-    private lateinit var listCopied: ListView
-    private lateinit var listPinned: ListView
-    private lateinit var btnPin: Button
-    private lateinit var btnUnpin: Button
-    private lateinit var btnClear: Button
+    private lateinit var clipboard: ClipboardManager
+    private var isServiceRunning = false
 
-    private lateinit var copiedAdapter: ArrayAdapter<String>
-    private lateinit var pinnedAdapter: ArrayAdapter<String>
+    private lateinit var binding: ActivityMainBinding
 
-    private var selectedCopied: String? = null
-    private var selectedPinned: String? = null
+    // Biến tạm để lưu dữ liệu khi context menu được tạo
+    private var selectedText: String? = null
+    private var selectedIsPinned: Boolean = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_main)
+        Log.d("MainActivity", "onCreate: Activity created")
+        ClipboardDataManager.initialize(this)
+        binding = ActivityMainBinding.inflate(layoutInflater)
+        setContentView(binding.root)
 
-        listCopied = findViewById(R.id.list_copied)
-        listPinned = findViewById(R.id.list_pinned)
-        btnPin = findViewById(R.id.btn_pin)
-        btnUnpin = findViewById(R.id.btn_unpin)
-        btnClear = findViewById(R.id.btn_clear)
-
-        // Lấy dữ liệu
-        val copiedData: MutableList<String> = Utils.getCopiedList(this)
-        val pinnedData: MutableList<String> = Utils.getPinnedList(this)
-
-        // Adapter rõ ràng kiểu List<String> để tránh overload ambiguity
-        copiedAdapter = ArrayAdapter(this, android.R.layout.simple_list_item_1, copiedData)
-        pinnedAdapter = ArrayAdapter(this, android.R.layout.simple_list_item_1, pinnedData)
-
-        listCopied.adapter = copiedAdapter
-        listPinned.adapter = pinnedAdapter
-
-        listCopied.setOnItemClickListener { _, _, position, _ ->
-            selectedCopied = copiedAdapter.getItem(position)
+        clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        clipboard.addPrimaryClipChangedListener {
+            val clipText = clipboard.primaryClip?.getItemAt(0)?.text?.toString()
+            if (!clipText.isNullOrBlank()) {
+                Log.d("MainActivity", "Clip changed in MainActivity: $clipText")
+                ClipboardDataManager.addCopy(clipText)
+                recreate()
+            }
         }
 
-        listPinned.setOnItemClickListener { _, _, position, _ ->
-            selectedPinned = pinnedAdapter.getItem(position)
+        binding.toggleServiceButton.setOnClickListener {
+            if (isServiceRunning) {
+                stopFloatingWidgetService()
+                Toast.makeText(this@MainActivity, "Đã tắt Clipboard Nổi", Toast.LENGTH_SHORT).show()
+                Log.d("MainActivity", "Toggle service: Stopping service")
+            } else {
+                startFloatingWidgetService()
+                Log.d("MainActivity", "Toggle service: Starting service")
+            }
         }
 
-        btnPin.setOnClickListener {
-            val value = selectedCopied ?: return@setOnClickListener
-            Utils.pin(this, value)
-            refreshPinned()
-            Toast.makeText(this, "Đã ghim", Toast.LENGTH_SHORT).show()
+        addCopiedAndPinnedItems()
+        isServiceRunning = isMyServiceRunning(FloatingWidgetService::class.java)
+        updateToggleButtonText()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        Log.d("MainActivity", "onResume: Activity resumed, refreshing items")
+        ClipboardDataManager.initialize(this) // Đảm bảo dữ liệu được tải mới nhất
+        addCopiedAndPinnedItems()
+        isServiceRunning = isMyServiceRunning(FloatingWidgetService::class.java)
+        updateToggleButtonText()
+    }
+
+    private fun addCopiedAndPinnedItems() {
+        Log.d("MainActivity", "addCopiedAndPinnedItems: Refreshing lists")
+        // Giữ lại tiêu đề (thường là child 0)
+        if (binding.copiedLayout.childCount > 1) {
+            binding.copiedLayout.removeViews(1, binding.copiedLayout.childCount - 1)
+        }
+        if (binding.pinnedLayout.childCount > 1) {
+            binding.pinnedLayout.removeViews(1, binding.pinnedLayout.childCount - 1)
         }
 
-        btnUnpin.setOnClickListener {
-            val value = selectedPinned ?: return@setOnClickListener
-            Utils.unpin(this, value)
-            refreshPinned()
-            Toast.makeText(this, "Đã bỏ ghim", Toast.LENGTH_SHORT).show()
+        ClipboardDataManager.getCopiedList().forEach { text ->
+            binding.copiedLayout.addView(createTextItem(text, false))
+            Log.d("MainActivity", "Added copied item: $text")
         }
 
-        btnClear.setOnClickListener {
-            Utils.clearCopied(this)
-            refreshCopied()
-            Toast.makeText(this, "Đã xóa danh sách đã sao chép", Toast.LENGTH_SHORT).show()
+        ClipboardDataManager.getPinnedList().forEach { text ->
+            binding.pinnedLayout.addView(createTextItem(text, true))
+            Log.d("MainActivity", "Added pinned item: $text")
         }
     }
 
-    private fun refreshCopied() {
-        copiedAdapter.clear()
-        copiedAdapter.addAll(Utils.getCopiedList(this))
-        copiedAdapter.notifyDataSetChanged()
-        selectedCopied = null
+    private fun startFloatingWidgetService() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.canDrawOverlays(this)) {
+            val intent = Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                Uri.parse("package:$packageName"))
+            startActivityForResult(intent, 123)
+            Toast.makeText(this, "Vui lòng cấp quyền vẽ đè lên ứng dụng khác", Toast.LENGTH_LONG).show()
+        } else {
+            val serviceIntent = Intent(this, FloatingWidgetService::class.java)
+            startService(serviceIntent)
+            isServiceRunning = true
+            updateToggleButtonText()
+            Toast.makeText(this, "Đã bật Clipboard Nổi", Toast.LENGTH_SHORT).show()
+        }
     }
 
-    private fun refreshPinned() {
-        pinnedAdapter.clear()
-        pinnedAdapter.addAll(Utils.getPinnedList(this))
-        pinnedAdapter.notifyDataSetChanged()
-        selectedPinned = null
+    private fun stopFloatingWidgetService() {
+        val serviceIntent = Intent(this, FloatingWidgetService::class.java)
+        stopService(serviceIntent)
+        isServiceRunning = false
+        updateToggleButtonText()
     }
-}
+
+    private fun updateToggleButtonText() {
+        if (isServiceRunning) {
+            binding.toggleServiceButton.text = "Tắt Clipboard Nổi"
+            binding.toggleServiceButton.setBackgroundColor(Color.RED)
+        } else {
+            binding.toggleServiceButton.text = "Bật Clipboard Nổi"
+            binding.toggleServiceButton.setBackgroundColor(Color.GREEN)
+        }
+    }
+
+    private fun isMyServiceRunning(serviceClass: Class<*>): Boolean {
+        val manager = getSystemService(Context.ACTIVITY_SERVICE) as android.app.ActivityManager
+        for (service in manager.getRunningServices(Integer.MAX_VALUE)) {
+            if (serviceClass.name == service.service.className) {
+                return true
+            }
+        }
+        return false
+    }
+
+    // =========================================================================================
+    // Các hàm xử lý item (TEXTVIEW VÀ BUTTONS)
+    // =========================================================================================
+
+    private fun createTextItem(text: String, isPinned: Boolean): LinearLayout {
+        val container = LinearLayout(this).apply {
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply {
+                setMargins(0, 0, 0, 8) // Margin giữa các item
+            }
+            orientation = LinearLayout.HORIZONTAL
+            setBackgroundResource(R.drawable.item_background) // Giả sử bạn có item_background.xml
+            setPadding(16, 16, 16, 16)
+        }
+
+        val textView = TextView(this).apply {
+            layoutParams = LinearLayout.LayoutParams(
+                0,
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                1f // Chiếm phần còn lại của không gian
+            )
+            this.text = text
+            textSize = 16f
+            setTextColor(Color.BLACK)
+            setPadding(0, 0, 16, 0)
+            // Cho phép copy lại khi click
+            setOnClickListener {
+                clipboard.setPrimaryClip(android.content.ClipData.newPlainText("Copied Text", text))
+                Toast.makeText(this@MainActivity, "Đã sao chép: $text", Toast.LENGTH_SHORT).show()
+            }
+            // Mở Context Menu khi nhấn giữ
+            setOnLongClickListener {
+                selectedText = text // Lưu text được chọn
+                selectedIsPinned = isPinned // Lưu trạng thái pinned
+                false // Trả về false để hệ thống tạo Context Menu
+            }
+        }
+        registerForContextMenu(textView) // Đăng ký TextView cho Context Menu
+
+        // Nút pin/unpin
+        val pinButton = ImageView(this).apply {
+            layoutParams = LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+            ).apply {
+                setMargins(8, 0, 0, 0)
+            }
+            setImageResource(if (isPinned) android.R.drawable.btn_star_big_on else android.R.drawable.btn_star_big_off)
+            setOnClickListener {
+                if (isPinned) {
+                    ClipboardDataManager.unpinText(text)
+                    Toast.makeText(this@MainActivity, "Đã bỏ ghim", Toast.LENGTH_SHORT).show()
+                } else {
+                    ClipboardDataManager.pinText(text)
+                    Toast.makeText(this@MainActivity, "Đã ghim", Toast.LENGTH_SHORT).show()
+                }
+                recreate() // Cập nhật lại giao diện sau khi thay đổi trạng thái pin
+            }
+        }
+
+        // Nút xóa
+        val deleteButton = ImageView(this).apply {
+            layoutParams = LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+            ).apply {
+                setMargins(8, 0, 0, 0)
+            }
+            setImageResource(android.R.drawable.ic_delete)
+            setOnClickListener {
+                showConfirmDeleteDialog(text, isPinned)
+            }
+        }
+
+        container.addView(textView)
+        container.addView(pinButton)
+        container.addView(deleteButton)
+
+        return container
+    }
+
+    // =========================================================================================
+    // Context Menu và Dialogs
+    // =========================================================================================
+
+    override fun onCreateContextMenu(menu: ContextMenu?, v: View?, menuInfo: ContextMenu.ContextMenuInfo?) {
+        super.onCreateContextMenu(menu, v, menuInfo)
+        menuInflater.inflate(R.menu.context_menu, menu) // Giả sử bạn có R.menu.context_menu
+    }
+
+    override fun onContextItemSelected(item: MenuItem): Boolean {
+        return when (item.itemId) {
+            R.id.menu_edit -> {
+                selectedText?.let { text ->
+                    showEditDialog(text, selectedIsPinned)
+                }
+                true
+            }
+            R.id.menu_delete -> {
+                selectedText?.let { text ->
+                    showConfirmDeleteDialog(text, selectedIsPinned)
+                }
+                true
+            }
+            else -> super.onContextItemSelected(item)
+        }
+    }
+
+    private fun showEditDialog(oldText: String, isPinned: Boolean) {
+        val input = EditText(this)
+        input.setText(oldText)
+        AlertDialog.Builder(this)
+            .setTitle("Chỉnh sửa nội dung")
+            .setView(input)
+            .setPositiveButton("Lưu") { dialog, _ ->
+                val newText = input.text.toString()
+                if (newText.isNotBlank()) {
+                    ClipboardDataManager.editText(oldText, newText, isPinned)
+                    recreate()
+                    Toast.makeText(this, "Đã lưu chỉnh sửa", Toast.LENGTH_SHORT).show()
+                } else {
+                    Toast.makeText(this, "Nội dung không được để trống", Toast.LENGTH_SHORT).show()
+                }
+                dialog.dismiss()
+            }
+            .setNegativeButton("Hủy") { dialog, _ ->
+                dialog.cancel()
+            }
+            .show()
+    }
+
+    private fun showConfirmDeleteDialog(text: String, isPinned: Boolean) {
+        AlertDialog.Builder(this)
+            .setTitle("Xác nhận xóa")
+            .setMessage("Bạn có chắc chắn muốn xóa mục này không?\n\"$text\"")
+            .setPositiveButton("Xóa") { dialog, _ ->
+                ClipboardDataManager.removeText(text, isPinned)
+                recreate()
+                Toast.makeText(this, "Đã xóa", Toast.LENGTH_SHORT).show()
+                dialog.dismiss()
+            }
+            .setNegativeButton("Hủy") { dialog, _ ->
+                dialog.cancel()
+            }
+            .show()
+    }
+
+    // =========================================================================================
+    // Cần có menu XML cho Context Menu
+    // =========================================================================================
+    // file: res/menu/context_menu.xml
+    /*
+    <?xml version="1.0" encoding="utf-8"?>
+    <menu xmlns:android="http://schemas.android.com/apk/res/android">
+        <item
+            android:id="@+id/menu_edit"
+            android:title="Chỉnh sửa" />
+        <item
+            android:id="@+id/menu_delete"
+            android:title="Xóa" />
+    </menu>
+    */
+    // =========================================================================================
+    // Cần có drawable XML cho item background
+    // =========================================================================================
+    // file: res/drawable/item_background.xml
+    /*
+    <?xml version="1.0" encoding="utf-8"?>
+    <shape xmlns:android="http://schemas.android.com/apk/res/android">
+        <solid android:color="#F0F0F0" /> // Màu nền
+        <corners android:radius="8dp" /> // Bo góc
+        <stroke android:width="1dp" android:color="#CCCCCC" /> // Viền
+    </shape>
+    */

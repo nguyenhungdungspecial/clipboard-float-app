@@ -1,89 +1,57 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/main_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:padding="12dp">
+    android:padding="8dp">
 
+    <!-- Thanh tiêu đề -->
     <TextView
-        android:id="@+id/label_copied"
+        android:id="@+id/titleText"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="@string/title_copied"
+        android:text="Clipboard Manager"
+        android:textSize="20sp"
         android:textStyle="bold"
-        android:textSize="16sp"/>
+        android:gravity="center"
+        android:padding="8dp" />
 
+    <!-- Empty view cho danh sách Copied -->
+    <TextView
+        android:id="@+id/empty_view_copied"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="No copied items"
+        android:gravity="center"
+        android:visibility="gone"
+        android:padding="16dp" />
+
+    <!-- Danh sách Copied -->
     <ListView
-        android:id="@+id/list_copied"
+        android:id="@+id/listViewCopied"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
-        android:dividerHeight="4dp"
-        android:listSelector="@android:color/darker_gray"
-        android:emptyView="@+id/empty_copied"/>
+        android:divider="@android:color/darker_gray"
+        android:dividerHeight="1dp" />
 
+    <!-- Empty view cho danh sách Pinned -->
     <TextView
-        android:id="@+id/empty_copied"
+        android:id="@+id/empty_view_pinned"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="@string/empty_list"
+        android:text="No pinned items"
         android:gravity="center"
-        android:padding="8dp"
-        android:visibility="gone"/>
+        android:visibility="gone"
+        android:padding="16dp" />
 
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:gravity="end"
-        android:paddingTop="8dp"
-        android:paddingBottom="8dp">
-
-        <Button
-            android:id="@+id/btn_pin"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/btn_pin" />
-
-        <Button
-            android:id="@+id/btn_unpin"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
-            android:text="@string/btn_unpin" />
-
-        <Button
-            android:id="@+id/btn_clear"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
-            android:text="@string/btn_clear" />
-    </LinearLayout>
-
-    <TextView
-        android:id="@+id/label_pinned"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="@string/title_pinned"
-        android:textStyle="bold"
-        android:textSize="16sp"/>
-
+    <!-- Danh sách Pinned -->
     <ListView
-        android:id="@+id/list_pinned"
+        android:id="@+id/listViewPinned"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
-        android:dividerHeight="4dp"
-        android:listSelector="@android:color/darker_gray"
-        android:emptyView="@+id/empty_pinned"/>
+        android:divider="@android:color/darker_gray"
+        android:dividerHeight="1dp" />
 
-    <TextView
-        android:id="@+id/empty_pinned"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="@string/empty_list"
-        android:gravity="center"
-        android:padding="8dp"
-        android:visibility="gone"/>
 </LinearLayout>
