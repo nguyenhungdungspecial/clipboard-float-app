@@ -1,6 +1,9 @@
 package com.dung.clipboard
 
-import android.content.*
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -19,14 +22,12 @@ class ClipboardActivity : AppCompatActivity() {
     private lateinit var adapter: ArrayAdapter<String>
     private val items = mutableListOf<String>()
 
-    // để FloatingWidgetService biết Activity đang mở hay đóng
-    companion object { @JvmField var isVisible: Boolean = false }
-
-    private val receiver = object : BroadcastReceiver() {
+    // nhận tín hiệu cập nhật & đóng
+    private val updateReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
             when (intent?.action) {
-                ACTION_ITEMS_UPDATED -> refreshFromStore()
-                ACTION_CLOSE_ACTIVITY -> finish()
+                ClipboardStorage.ACTION_ITEMS_UPDATED -> refreshFromStorage()
+                ClipboardStorage.ACTION_CLOSE_ACTIVITY -> finish()
             }
         }
     }
@@ -41,40 +42,42 @@ class ClipboardActivity : AppCompatActivity() {
         btnToggleFloat = findViewById(R.id.btnToggleFloat)
         btnClear = findViewById(R.id.btnClear)
 
-        items.addAll(ClipboardDataManager.getItems(this))
+        items.addAll(ClipboardStorage.getItems(this))
         adapter = ArrayAdapter(this, android.R.layout.simple_list_item_1, items)
         lvCopied.adapter = adapter
         updateStatus()
 
-        // đảm bảo service lắng nghe clipboard đang chạy
+        // đảm bảo service clipboard chạy
         val svc = Intent(this, ClipboardService::class.java)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) startForegroundService(svc) else startService(svc)
 
         btnOpenAccessibility.setOnClickListener { openAccessibilitySettings() }
         btnToggleFloat.setOnClickListener { ensureOverlayPermission { toggleFloatingWidget() } }
         btnClear.setOnClickListener {
-            ClipboardDataManager.clear(this)
+            items.clear()
+            ClipboardStorage.saveItems(this, items)
+            adapter.notifyDataSetChanged(); updateStatus()
         }
     }
 
     override fun onStart() {
         super.onStart()
-        isVisible = true
-        registerReceiver(receiver, IntentFilter().apply {
-            addAction(ACTION_ITEMS_UPDATED)
-            addAction(ACTION_CLOSE_ACTIVITY)
+        ActivityVisibility.visible = true
+        registerReceiver(updateReceiver, IntentFilter().apply {
+            addAction(ClipboardStorage.ACTION_ITEMS_UPDATED)
+            addAction(ClipboardStorage.ACTION_CLOSE_ACTIVITY)
         })
     }
 
     override fun onStop() {
-        isVisible = false
-        runCatching { unregisterReceiver(receiver) }
+        ActivityVisibility.visible = false
+        runCatching { unregisterReceiver(updateReceiver) }
         super.onStop()
     }
 
-    private fun refreshFromStore() {
+    private fun refreshFromStorage() {
         items.clear()
-        items.addAll(ClipboardDataManager.getItems(this))
+        items.addAll(ClipboardStorage.getItems(this))
         adapter.notifyDataSetChanged()
         updateStatus()
     }
@@ -86,7 +89,7 @@ class ClipboardActivity : AppCompatActivity() {
     private fun openAccessibilitySettings() {
         try {
             startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
-            Toast.makeText(this, "Vào Trợ năng → bật \"Clipboard Float App\"", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, "Tìm \"Clipboard Float App\" và bật Trợ năng", Toast.LENGTH_LONG).show()
         } catch (_: Exception) {
             Toast.makeText(this, "Không mở được Cài đặt Trợ năng", Toast.LENGTH_SHORT).show()
         }

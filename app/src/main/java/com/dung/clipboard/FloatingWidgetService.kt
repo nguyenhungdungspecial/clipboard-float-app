@@ -9,13 +9,9 @@ import android.view.*
 import android.widget.ImageView
 import kotlin.math.abs
 
-/**
- * Icon ngôi sao nổi: click để mở/đóng Activity, kéo để di chuyển.
- * Không phụ thuộc layout XML (tạo view bằng code để bạn khỏi sửa resource).
- */
 class FloatingWidgetService : Service() {
 
-    companion object { @Volatile var isRunning: Boolean = false }
+    companion object { @Volatile var isRunning = false }
 
     private var wm: WindowManager? = null
     private var view: View? = null
@@ -25,16 +21,12 @@ class FloatingWidgetService : Service() {
         super.onCreate()
         isRunning = true
         wm = getSystemService(WINDOW_SERVICE) as WindowManager
-        addStarView()
+        addStar()
     }
 
-    private fun addStarView() {
-        val img = ImageView(this).apply {
-            // dùng icon hệ thống để khỏi thêm drawable
-            setImageResource(android.R.drawable.btn_star_big_on)
-            isClickable = true
-        }
-        view = img
+    private fun addStar() {
+        val inflater = getSystemService(LAYOUT_INFLATER_SERVICE) as LayoutInflater
+        view = inflater.inflate(R.layout.floating_widget_layout, null)
 
         val type = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
             WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
@@ -48,11 +40,14 @@ class FloatingWidgetService : Service() {
             PixelFormat.TRANSLUCENT
         ).apply {
             gravity = Gravity.TOP or Gravity.START
-            x = 48; y = 160
+            x = 40; y = 140
         }
 
         wm?.addView(view, params)
 
+        val star = view!!.findViewById<ImageView>(R.id.btnStar)
+
+        // click vs drag phân biệt bằng delta
         var downX = 0f; var downY = 0f
         var startX = 0; var startY = 0
         var moved = false
@@ -82,15 +77,14 @@ class FloatingWidgetService : Service() {
             }
         }
 
-        img.setOnClickListener {
-            // dự phòng một số máy không gọi ACTION_UP khi click
-            if (!moved) toggleMainActivity()
-        }
+        // đề phòng user chạm trực tiếp vào hình (một số máy không chuyển sự kiện cho parent)
+        star.setOnClickListener { toggleMainActivity() }
     }
 
     private fun toggleMainActivity() {
-        if (ClipboardActivity.isVisible) {
-            sendBroadcast(Intent(ACTION_CLOSE_ACTIVITY))
+        if (ActivityVisibility.visible) {
+            // gửi lệnh đóng
+            sendBroadcast(Intent(ClipboardStorage.ACTION_CLOSE_ACTIVITY))
         } else {
             val i = Intent(this, ClipboardActivity::class.java)
             i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)

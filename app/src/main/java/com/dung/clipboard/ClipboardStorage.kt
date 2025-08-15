@@ -36,6 +36,5 @@ object ClipboardStorage {
     }
 
     const val ACTION_ITEMS_UPDATED = "com.dung.clipboard.ACTION_ITEMS_UPDATED"
- 
-   const val ACTION_CLOSE_ACTIVITY = "com.dung.clipboard.ACTION_CLOSE_ACTIVITY"
+    const val ACTION_CLOSE_ACTIVITY = "com.dung.clipboard.ACTION_CLOSE_ACTIVITY"
 }
