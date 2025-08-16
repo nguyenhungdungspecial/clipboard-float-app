@@ -7,7 +7,7 @@
 
     <!-- Thanh tiêu đề -->
     <TextView
-        android:id="@+id/titleText"
+        android:id="@+id/tvStatus"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="Clipboard Manager"
@@ -16,9 +16,36 @@
         android:gravity="center"
         android:padding="8dp" />
 
+    <!-- Nút thao tác -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center"
+        android:padding="4dp">
+
+        <Button
+            android:id="@+id/btnRequestAccessibility"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Grant Accessibility" />
+
+        <Button
+            android:id="@+id/btnToggleFloat"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Toggle Floating" />
+
+        <Button
+            android:id="@+id/btnClear"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Clear All" />
+    </LinearLayout>
+
     <!-- Empty view cho danh sách Copied -->
     <TextView
-        android:id="@+id/empty_view_copied"
+        android:id="@+id/tvEmptyCopied"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="No copied items"
@@ -28,7 +55,7 @@
 
     <!-- Danh sách Copied -->
     <ListView
-        android:id="@+id/listViewCopied"
+        android:id="@+id/lvCopied"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
@@ -37,7 +64,7 @@
 
     <!-- Empty view cho danh sách Pinned -->
     <TextView
-        android:id="@+id/empty_view_pinned"
+        android:id="@+id/tvEmptyPinned"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="No pinned items"
@@ -47,7 +74,7 @@
 
     <!-- Danh sách Pinned -->
     <ListView
-        android:id="@+id/listViewPinned"
+        android:id="@+id/lvPinned"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
