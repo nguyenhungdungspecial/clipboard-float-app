@@ -1,5 +1,6 @@
 package com.dung.clipboard.utils
 
+import android.app.Activity
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
@@ -7,6 +8,8 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Build
 import android.provider.Settings
+import android.widget.ListView
+import android.widget.TextView
 import android.widget.Toast
 
 object Utils {
@@ -30,4 +33,11 @@ object Utils {
             ctx.startActivity(intent)
         }
     }
+}
+
+// Top-level helper to attach an empty view to a ListView
+fun attachEmptyView(listView: ListView, emptyViewId: Int) {
+    val activity = listView.context as? Activity ?: return
+    val emptyView = activity.findViewById<TextView>(emptyViewId)
+    listView.emptyView = emptyView
 }
