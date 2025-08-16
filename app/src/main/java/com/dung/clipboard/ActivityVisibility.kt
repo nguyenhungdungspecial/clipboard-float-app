@@ -1,8 +1,10 @@
 package com.dung.clipboard
 
-/**
- * Cờ theo dõi Activity có đang hiển thị hay không để FloatingWidget toggle mở/đóng.
- */
+import java.util.concurrent.atomic.AtomicBoolean
+
 object ActivityVisibility {
-    @Volatile var visible: Boolean = false
+    private val visible = AtomicBoolean(false)
+    fun onResume() { visible.set(true) }
+    fun onPause() { visible.set(false) }
+    fun isVisible(): Boolean = visible.get()
 }

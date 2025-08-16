@@ -1,51 +1,33 @@
 package com.dung.clipboard.utils
 
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.content.Context
-import android.content.SharedPreferences
-
-private const val PREFS = "clipboard_prefs"
-private const val KEY_COPIED = "copied_list"
-private const val KEY_PINNED = "pinned_list"
+import android.content.Intent
+import android.net.Uri
+import android.os.Build
+import android.provider.Settings
+import android.widget.Toast
 
 object Utils {
-
-    private fun prefs(ctx: Context): SharedPreferences =
-        ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-
-    fun getCopiedList(ctx: Context): MutableList<String> {
-        val set = prefs(ctx).getStringSet(KEY_COPIED, emptySet()) ?: emptySet()
-        return set.toMutableList().sortedByDescending { it }.toMutableList()
+    fun copyText(ctx: Context, text: String) {
+        val cm = ctx.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        cm.setPrimaryClip(ClipData.newPlainText("text", text))
+        Toast.makeText(ctx, "Copied", Toast.LENGTH_SHORT).show()
     }
 
-    fun getPinnedList(ctx: Context): MutableList<String> {
-        val set = prefs(ctx).getStringSet(KEY_PINNED, emptySet()) ?: emptySet()
-        return set.toMutableList().sorted().toMutableList()
+    fun hasOverlay(ctx: Context): Boolean {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            Settings.canDrawOverlays(ctx)
+        } else true
     }
 
-    fun addCopied(ctx: Context, value: String) {
-        if (value.isBlank()) return
-        val p = prefs(ctx)
-        val cur = p.getStringSet(KEY_COPIED, mutableSetOf())!!.toMutableSet()
-        cur.add(value)
-        p.edit().putStringSet(KEY_COPIED, cur).apply()
-    }
-
-    fun pin(ctx: Context, value: String) {
-        if (value.isBlank()) return
-        val p = prefs(ctx)
-        val cur = p.getStringSet(KEY_PINNED, mutableSetOf())!!.toMutableSet()
-        cur.add(value)
-        p.edit().putStringSet(KEY_PINNED, cur).apply()
-    }
-
-    fun unpin(ctx: Context, value: String) {
-        val p = prefs(ctx)
-        val cur = p.getStringSet(KEY_PINNED, mutableSetOf())!!.toMutableSet()
-        cur.remove(value)
-        p.edit().putStringSet(KEY_PINNED, cur).apply()
-    }
-
-    fun clearCopied(ctx: Context) {
-        prefs(ctx).edit().putStringSet(KEY_COPIED, emptySet()).apply()
+    fun requestOverlay(ctx: Context) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            val intent = Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                Uri.parse("package:${ctx.packageName}"))
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            ctx.startActivity(intent)
+        }
     }
 }
