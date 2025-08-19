@@ -12,6 +12,12 @@ class FloatingWidgetService : Service() {
 
     companion object {
         @Volatile var isRunning = false
+        var currentClipboardText: String = "" // Biến mới để lưu trữ văn bản
+        
+        fun updateClipboardText(text: String) {
+            currentClipboardText = text
+            // Bạn có thể thêm logic để cập nhật giao diện widget tại đây nếu cần.
+        }
     }
 
     private var windowManager: WindowManager? = null
@@ -38,7 +44,7 @@ class FloatingWidgetService : Service() {
             WindowManager.LayoutParams.WRAP_CONTENT,
             WindowManager.LayoutParams.WRAP_CONTENT,
             layoutFlag,
-            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
             PixelFormat.TRANSLUCENT
         )
         params!!.gravity = Gravity.TOP or Gravity.START
@@ -49,16 +55,9 @@ class FloatingWidgetService : Service() {
 
         val imgStar = floatingView!!.findViewById<ImageView>(R.id.btnStar)
         imgStar.setOnClickListener {
-            if (MainActivity.isVisible) {
-                // Nếu MainActivity đang hiển thị, gửi broadcast để đóng nó
-                val i = Intent(MainActivity.ACTION_TOGGLE_FINISH)
-                sendBroadcast(i)
-            } else {
-                // Nếu MainActivity không hiển thị, mở nó
-                val i = Intent(this, MainActivity::class.java)
-                i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
-                startActivity(i)
-            }
+            val i = Intent(this, MainActivity::class.java)
+            i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+            startActivity(i)
         }
 
         // Drag to move

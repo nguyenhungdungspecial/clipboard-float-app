@@ -37,3 +37,4 @@ class ClipboardMonitor(private val context: Context) : ClipboardManager.OnPrimar
         FloatingWidgetService.updateClipboardText(text)
     }
 }
+
