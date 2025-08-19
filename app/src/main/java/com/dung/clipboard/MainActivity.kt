@@ -39,9 +39,16 @@ class MainActivity : AppCompatActivity() {
         tvStatus = findViewById(R.id.tvStatus)
         lvCopied = findViewById(R.id.lvCopied)
         lvPinned = findViewById(R.id.lvPinned)
+        
+        // Khôi phục ánh xạ đúng với layout gốc của bạn
         btnRequestAccessibility = findViewById(R.id.btnRequestAccessibility)
         btnToggleFloat = findViewById(R.id.btnToggleFloat)
         btnClear = findViewById(R.id.btnClear)
+        
+        // Cài đặt text cho các nút
+        btnRequestAccessibility.text = "MỞ CÀI ĐẶT TRỢ NĂNG"
+        btnToggleFloat.text = "BẬT/TẮT ICON NỔI"
+        btnClear.text = "XÓA LỊCH SỬ"
 
         btnRequestAccessibility.setOnClickListener { openAccessibilitySettings() }
         btnToggleFloat.setOnClickListener { toggleFloatingWidget() }
@@ -103,10 +110,10 @@ class MainActivity : AppCompatActivity() {
     private fun toggleFloatingWidget() {
         if (FloatingWidgetService.isRunning) {
             stopService(Intent(this, FloatingWidgetService::class.java))
-            btnToggleFloat.text = "Bật icon nổi"
+            btnToggleFloat.text = "BẬT/TẮT ICON NỔI"
         } else {
             startService(Intent(this, FloatingWidgetService::class.java))
-            btnToggleFloat.text = "Tắt icon nổi"
+            btnToggleFloat.text = "BẬT/TẮT ICON NỔI"
         }
     }
 
