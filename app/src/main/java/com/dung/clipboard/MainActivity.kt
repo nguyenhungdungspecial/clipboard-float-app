@@ -1,127 +1,97 @@
 package com.dung.clipboard
 
-import android.app.AlertDialog
-import android.content.ClipData
-import android.content.ClipboardManager
-import android.content.Context
-import android.content.Intent
-import android.net.Uri
-import android.os.Build
+import android.content.*
 import android.os.Bundle
 import android.provider.Settings
-import android.view.Menu
-import android.view.View
-import android.widget.*
+import android.widget.Button
+import android.widget.ListView
+import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 
 class MainActivity : AppCompatActivity() {
 
+    companion object {
+        var isVisible = false
+        const val ACTION_CLIPBOARD_UPDATED = "com.dung.clipboard.CLIPBOARD_UPDATED"
+        const val ACTION_TOGGLE_FINISH = "com.dung.clipboard.TOGGLE_FINISH"
+    }
+
+    private lateinit var tvStatus: TextView
     private lateinit var lvCopied: ListView
     private lateinit var lvPinned: ListView
-    private lateinit var tvStatus: TextView
     private lateinit var btnRequestAccessibility: Button
-    private lateinit var btnToggleFloat: Button
-    private lateinit var btnClear: Button
-    private lateinit var tvEmptyCopied: TextView
-    private lateinit var tvEmptyPinned: TextView
 
-    private lateinit var copiedAdapter: ArrayAdapter<String>
-    private lateinit var pinnedAdapter: ArrayAdapter<String>
-    private val copied = mutableListOf<String>()
-    private val pinned = mutableListOf<String>()
-
-    private val ID_COPY = 1
-    private val ID_PIN = 2
-    private val ID_UNPIN = 3
-    private val ID_DELETE = 4
+    private val receiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            when (intent?.action) {
+                ACTION_CLIPBOARD_UPDATED -> refreshList()
+                ACTION_TOGGLE_FINISH -> finish()
+            }
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
+        tvStatus = findViewById(R.id.tvStatus)
         lvCopied = findViewById(R.id.lvCopied)
         lvPinned = findViewById(R.id.lvPinned)
-        tvStatus = findViewById(R.id.tvStatus)
         btnRequestAccessibility = findViewById(R.id.btnRequestAccessibility)
-        btnToggleFloat = findViewById(R.id.btnToggleFloat)
-        btnClear = findViewById(R.id.btnClear)
-        tvEmptyCopied = findViewById(R.id.tvEmptyCopied)
-        tvEmptyPinned = findViewById(R.id.tvEmptyPinned)
 
-        copiedAdapter = ArrayAdapter(this, android.R.layout.simple_list_item_1, copied)
-        pinnedAdapter = ArrayAdapter(this, android.R.layout.simple_list_item_1, pinned)
-        lvCopied.adapter = copiedAdapter
-        lvPinned.adapter = pinnedAdapter
+        btnRequestAccessibility.setOnClickListener { openAccessibilitySettings() }
 
-        attachEmptyView(lvCopied, tvEmptyCopied)
-        attachEmptyView(lvPinned, tvEmptyPinned)
+        // Start services
+        startService(Intent(this, ClipboardService::class.java))
+        startService(Intent(this, FloatingWidgetService::class.java))
 
-        refreshLists()
-        renderStatus()
+        registerReceiver(receiver, IntentFilter(ACTION_CLIPBOARD_UPDATED))
+        registerReceiver(receiver, IntentFilter(ACTION_TOGGLE_FINISH))
 
-        btnRequestAccessibility.setOnClickListener {
-            openAccessibilitySettings()
-        }
-
-        btnToggleFloat.setOnClickListener {
-            if (!hasOverlayPermission()) {
-                requestOverlayPermission()
-            } else {
-                toggleFloating()
-            }
-        }
-
-        btnClear.setOnClickListener {
-            AlertDialog.Builder(this)
-                .setTitle("Xoá lịch sử")
-                .setMessage("Xoá toàn bộ danh sách Copied?")
-                .setPositiveButton("Xoá") { _, _ ->
-                    saveList("copied", emptyList())
-                    refreshLists()
-                }
-                .setNegativeButton("Huỷ", null)
-                .show()
-        }
-
-        lvCopied.setOnItemClickListener { _, _, pos, _ ->
-            safeCopyToClipboard(copied[pos])
-            Toast.makeText(this, "Copied", Toast.LENGTH_SHORT).show()
-        }
-        lvPinned.setOnItemClickListener { _, _, pos, _ ->
-            safeCopyToClipboard(pinned[pos])
-            Toast.makeText(this, "Copied", Toast.LENGTH_SHORT).show()
-        }
-
-        lvCopied.setOnItemLongClickListener { v, _, pos, _ ->
-            showItemMenu(v, source = "copied", position = pos)
-            true
-        }
-        lvPinned.setOnItemLongClickListener { v, _, pos, _ ->
-            showItemMenu(v, source = "pinned", position = pos)
-            true
-        }
+        updateAccessibilityStatus()
+        refreshList()
     }
 
-    private fun attachEmptyView(listView: ListView, emptyView: TextView) {
-        listView.emptyView = emptyView
+    override fun onResume() {
+        super.onResume()
+        isVisible = true
+        refreshList()
     }
 
-    private fun showItemMenu(anchor: View, source: String, position: Int) {
-        val popup = PopupMenu(this, anchor)
-        popup.menu.add(Menu.NONE, ID_COPY, 0, "Copy")
-        if (source == "copied") {
-            popup.menu.add(Menu.NONE, ID_PIN, 1, "Pin")
+    override fun onPause() {
+        super.onPause()
+        isVisible = false
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        try { unregisterReceiver(receiver) } catch (e: Exception) {}
+    }
+
+    private fun refreshList() {
+        val items = ClipboardDataManager.getCopiedList(this)
+        val adapter = android.widget.ArrayAdapter(this, android.R.layout.simple_list_item_1, items)
+        lvCopied.adapter = adapter
+
+        val pinned = ClipboardDataManager.getPinnedList(this)
+        val padapter = android.widget.ArrayAdapter(this, android.R.layout.simple_list_item_1, pinned)
+        lvPinned.adapter = padapter
+
+        tvStatus.text = if (items.isEmpty()) "Clipboard rỗng" else "Có ${items.size} mục"
+    }
+
+    private fun openAccessibilitySettings() {
+        val intent = Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
+        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
+        startActivity(intent)
+    }
+
+    private fun updateAccessibilityStatus() {
+        tvStatus.text = if (Utils.isAccessibilityServiceEnabled(this, MyAccessibilityService::class.java)) {
+            "Accessibility đã bật"
         } else {
-            popup.menu.add(Menu.NONE, ID_UNPIN, 1, "Unpin")
+            "Accessibility chưa bật"
         }
-        popup.menu.add(Menu.NONE, ID_DELETE, 2, "Delete")
-
-        popup.setOnMenuItemClickListener {
-            when (it.itemId) {
-                ID_COPY -> {
-                    val text = if (source == "copied") copied[position] else pinned[position]
-                    safeCopyToClipboard(text)
-                    Toast.makeText(this, "Copied", Toast.LENGTH_SHORT).show()
-                    true
-                }
+    }
+}
 
