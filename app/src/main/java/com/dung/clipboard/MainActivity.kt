@@ -20,6 +20,8 @@ class MainActivity : AppCompatActivity() {
     private lateinit var lvCopied: ListView
     private lateinit var lvPinned: ListView
     private lateinit var btnRequestAccessibility: Button
+    private lateinit var btnToggleFloat: Button
+    private lateinit var btnClear: Button
 
     private val receiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
@@ -38,8 +40,12 @@ class MainActivity : AppCompatActivity() {
         lvCopied = findViewById(R.id.lvCopied)
         lvPinned = findViewById(R.id.lvPinned)
         btnRequestAccessibility = findViewById(R.id.btnRequestAccessibility)
+        btnToggleFloat = findViewById(R.id.btnToggleFloat)
+        btnClear = findViewById(R.id.btnClear)
 
         btnRequestAccessibility.setOnClickListener { openAccessibilitySettings() }
+        btnToggleFloat.setOnClickListener { toggleFloatingWidget() }
+        btnClear.setOnClickListener { clearClipboardHistory() }
 
         // Start services
         startService(Intent(this, ClipboardService::class.java))
@@ -92,6 +98,21 @@ class MainActivity : AppCompatActivity() {
         } else {
             "Accessibility chưa bật"
         }
+    }
+
+    private fun toggleFloatingWidget() {
+        if (FloatingWidgetService.isRunning) {
+            stopService(Intent(this, FloatingWidgetService::class.java))
+            btnToggleFloat.text = "Bật icon nổi"
+        } else {
+            startService(Intent(this, FloatingWidgetService::class.java))
+            btnToggleFloat.text = "Tắt icon nổi"
+        }
+    }
+
+    private fun clearClipboardHistory() {
+        ClipboardDataManager.clearAll(this)
+        refreshList()
     }
 }
 

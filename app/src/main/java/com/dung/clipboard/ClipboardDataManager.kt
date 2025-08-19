@@ -40,6 +40,14 @@ object ClipboardDataManager {
         if (pinned.remove(text)) saveToPrefs(ctx)
     }
 
+    fun clearAll(ctx: Context) {
+        synchronized(this) {
+            inMemory.clear()
+            pinned.clear()
+            saveToPrefs(ctx)
+        }
+    }
+
     private fun saveToPrefs(ctx: Context) {
         val shared = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         shared.edit().putString(KEY_COPIED, inMemory.joinToString("\n"))
