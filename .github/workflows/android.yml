@@ -25,10 +25,10 @@ jobs:
       - name: Build APK
         run: |
           chmod +x ./gradlew
-          ./gradlew assembleDebug
+          ./gradlew clean assembleDebug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: clipboard-app
+          name: clipboard-floating-app1
           path: app/build/outputs/apk/debug/app-debug.apk
