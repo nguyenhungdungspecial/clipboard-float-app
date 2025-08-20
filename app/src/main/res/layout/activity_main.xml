@@ -5,18 +5,16 @@
     android:orientation="vertical"
     android:padding="8dp">
 
-    <!-- Thanh tiêu đề -->
     <TextView
         android:id="@+id/tvStatus"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Clipboard Manager"
+        android:text="Clipboard rỗng"
         android:textSize="20sp"
         android:textStyle="bold"
         android:gravity="center"
         android:padding="8dp" />
 
-    <!-- Nút thao tác -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -28,57 +26,66 @@
             android:id="@+id/btnRequestAccessibility"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Grant Accessibility" />
+            android:text="MỞ CÀI ĐẶT TRỢ NĂNG" />
 
         <Button
             android:id="@+id/btnToggleFloat"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Toggle Floating" />
+            android:text="BẬT/TẮT ICON NỔI" />
 
         <Button
             android:id="@+id/btnClear"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Clear All" />
+            android:text="XÓA LỊCH SỬ" />
     </LinearLayout>
 
-    <!-- Empty view cho danh sách Copied -->
-    <TextView
-        android:id="@+id/tvEmptyCopied"
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="No copied items"
+        android:orientation="horizontal"
         android:gravity="center"
-        android:visibility="gone"
-        android:padding="16dp" />
+        android:layout_marginTop="8dp">
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Đã copy"
+            android:textStyle="bold"
+            android:gravity="center"
+            android:background="#D3D3D3"
+            android:padding="4dp" />
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Đã ghim"
+            android:textStyle="bold"
+            android:gravity="center"
+            android:background="#D3D3D3"
+            android:padding="4dp" />
+    </LinearLayout>
 
-    <!-- Danh sách Copied -->
-    <ListView
-        android:id="@+id/lvCopied"
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
-        android:divider="@android:color/darker_gray"
-        android:dividerHeight="1dp" />
-
-    <!-- Empty view cho danh sách Pinned -->
-    <TextView
-        android:id="@+id/tvEmptyPinned"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="No pinned items"
-        android:gravity="center"
-        android:visibility="gone"
-        android:padding="16dp" />
-
-    <!-- Danh sách Pinned -->
-    <ListView
-        android:id="@+id/lvPinned"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
-        android:divider="@android:color/darker_gray"
-        android:dividerHeight="1dp" />
-
+        android:orientation="horizontal">
+        <ListView
+            android:id="@+id/lvCopied"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:divider="@android:color/darker_gray"
+            android:dividerHeight="1dp" />
+        <ListView
+            android:id="@+id/lvPinned"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:divider="@android:color/darker_gray"
+            android:dividerHeight="1dp" />
+    </LinearLayout>
 </LinearLayout>
+
