@@ -3,7 +3,7 @@ package com.dung.clipboard.monitor
 import android.content.ClipDescription
 import android.content.ClipboardManager
 import android.content.Context
-import com.dung.clipboard.FloatingWidgetService
+import android.content.Intent
 
 class ClipboardMonitor(private val context: Context) : ClipboardManager.OnPrimaryClipChangedListener {
 
@@ -25,16 +25,10 @@ class ClipboardMonitor(private val context: Context) : ClipboardManager.OnPrimar
         val text = clip.getItemAt(0)?.coerceToText(context)?.toString()?.trim().orEmpty()
         if (text.isBlank()) return
 
-        // lưu vào "copied"
-        val prefs = context.getSharedPreferences("clipboard_store", Context.MODE_PRIVATE)
-        val raw = prefs.getString("copied", "") ?: ""
-        val list = if (raw.isBlank()) mutableListOf() else raw.split("\u0001").toMutableList()
-        list.remove(text)
-        list.add(0, text)
-        prefs.edit().putString("copied", list.joinToString("\u0001")).apply()
-
-        // cập nhật floating widget
-        FloatingWidgetService.updateClipboardText(text)
+        // Gửi broadcast để cập nhật FloatingWidgetService
+        val broadcastIntent = Intent("com.dung.clipboard.CLIPBOARD_UPDATED_BROADCAST")
+        broadcastIntent.putExtra("clipboard_text", text)
+        context.sendBroadcast(broadcastIntent)
     }
 }
 
