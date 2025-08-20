@@ -1,16 +1,19 @@
 package com.dung.clipboard
 
 import android.app.Service
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.graphics.PixelFormat
 import android.os.Build
 import android.os.IBinder
 import android.view.*
+import android.widget.Button
 import android.widget.ListView
 import android.widget.LinearLayout
-import android.widget.TextView
 import android.widget.ArrayAdapter
+import android.widget.AdapterView
 
 class FloatingContentService : Service() {
 
@@ -38,6 +41,7 @@ class FloatingContentService : Service() {
         floatingView = inflater.inflate(R.layout.floating_widget_content_layout, null)
         lvCopied = floatingView!!.findViewById(R.id.lvCopied)
         lvPinned = floatingView!!.findViewById(R.id.lvPinned)
+        val btnClose = floatingView!!.findViewById<Button>(R.id.btnClose)
 
         val layoutFlag = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
             WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
@@ -54,6 +58,27 @@ class FloatingContentService : Service() {
         params!!.gravity = Gravity.CENTER
         
         windowManager!!.addView(floatingView, params)
+
+        // Add a click listener for the close button
+        btnClose.setOnClickListener {
+            stopSelf()
+        }
+
+        // Add click listener for copied list
+        lvCopied.onItemClickListener = AdapterView.OnItemClickListener { parent, view, position, id ->
+            val text = parent.getItemAtPosition(position).toString()
+            val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+            clipboard.setPrimaryClip(ClipData.newPlainText("clipboard_item", text))
+            stopSelf() // Đóng widget sau khi sao chép
+        }
+
+        // Add click listener for pinned list
+        lvPinned.onItemClickListener = AdapterView.OnItemClickListener { parent, view, position, id ->
+            val text = parent.getItemAtPosition(position).toString()
+            val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+            clipboard.setPrimaryClip(ClipData.newPlainText("clipboard_item", text))
+            stopSelf() // Đóng widget sau khi sao chép
+        }
     }
 
     private fun refreshLists() {
