@@ -1,16 +1,14 @@
 package com.dung.clipboard
 
 import android.app.Service
-import android.content.BroadcastReceiver
-import android.content.Context
 import android.content.Intent
-import android.content.IntentFilter
 import android.graphics.PixelFormat
 import android.os.Build
 import android.os.IBinder
 import android.view.*
 import android.widget.ImageView
-import android.widget.TextView
+import android.widget.Toast
+import android.widget.LinearLayout
 
 class FloatingWidgetService : Service() {
 
@@ -22,33 +20,18 @@ class FloatingWidgetService : Service() {
     private var windowManager: WindowManager? = null
     private var floatingView: View? = null
     private var params: WindowManager.LayoutParams? = null
-    private lateinit var tvClipboard: TextView
-
-    private val clipboardUpdateReceiver = object : BroadcastReceiver() {
-        override fun onReceive(context: Context?, intent: Intent?) {
-            val clipboardText = intent?.getStringExtra("clipboard_text")
-            if (clipboardText != null && floatingView != null) {
-                tvClipboard.text = clipboardText
-            }
-        }
-    }
 
     override fun onCreate() {
         super.onCreate()
         isRunning = true
         windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
-        addFloatingWidget()
-
-        val filter = IntentFilter("com.dung.clipboard.CLIPBOARD_UPDATED_BROADCAST")
-        registerReceiver(clipboardUpdateReceiver, filter)
+        addFloatingWidgetIcon()
     }
 
-    private fun addFloatingWidget() {
+    private fun addFloatingWidgetIcon() {
         val inflater = getSystemService(LAYOUT_INFLATER_SERVICE) as LayoutInflater
-        floatingView = inflater.inflate(R.layout.floating_widget_layout, null)
-        tvClipboard = floatingView!!.findViewById(R.id.tvClipboard)
+        floatingView = inflater.inflate(R.layout.floating_widget_icon_layout, null)
         val btnStar = floatingView!!.findViewById<ImageView>(R.id.btnStar)
-        val btnClose = floatingView!!.findViewById<ImageView>(R.id.btnClose)
 
         val layoutFlag = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
             WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
@@ -69,15 +52,14 @@ class FloatingWidgetService : Service() {
         windowManager!!.addView(floatingView, params)
 
         btnStar.setOnClickListener {
-            val i = Intent(this, MainActivity::class.java)
-            i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
-            startActivity(i)
+            // Khi nhấn vào icon, bật/tắt FloatingContentService
+            if (FloatingContentService.isRunning) {
+                stopService(Intent(this, FloatingContentService::class.java))
+            } else {
+                startService(Intent(this, FloatingContentService::class.java))
+            }
         }
-
-        btnClose.setOnClickListener {
-            stopSelf()
-        }
-
+        
         // Drag to move
         var initialX = 0
         var initialY = 0
@@ -105,10 +87,7 @@ class FloatingWidgetService : Service() {
 
     override fun onDestroy() {
         isRunning = false
-        try {
-            if (floatingView != null) windowManager?.removeView(floatingView)
-        } catch (_: Exception) {}
-        unregisterReceiver(clipboardUpdateReceiver)
+        if (floatingView != null) windowManager?.removeView(floatingView)
         super.onDestroy()
     }
 

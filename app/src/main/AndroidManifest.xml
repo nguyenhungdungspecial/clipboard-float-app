@@ -22,18 +22,19 @@
             </intent-filter>
         </activity>
 
-        <!-- Lắng nghe clipboard & lưu -->
         <service
             android:name=".ClipboardService"
             android:exported="false"
             android:foregroundServiceType="dataSync"/>
 
-        <!-- Icon ngôi sao nổi -->
         <service
             android:name=".FloatingWidgetService"
             android:exported="false"/>
+            
+        <service
+            android:name=".FloatingContentService"
+            android:exported="false"/>
 
-        <!-- Trợ năng: để app xuất hiện trong phần Trợ năng -->
         <service
             android:name=".MyAccessibilityService"
             android:exported="false"
@@ -57,3 +58,4 @@
 
     </application>
 </manifest>
+
