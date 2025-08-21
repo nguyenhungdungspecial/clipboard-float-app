@@ -19,19 +19,23 @@ class FloatingWidgetService : Service() {
     private var floatingView: View? = null
     private var params: WindowManager.LayoutParams? = null
 
-    private var xDelta = 0
-    private var yDelta = 0
+    private var initialX = 0
+    private var initialY = 0
+    private var initialTouchX = 0f
+    private var initialTouchY = 0f
 
     override fun onCreate() {
         super.onCreate()
         isRunning = true
         windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
-        addFloatingWidgetView()
+        addFloatingWidgetIcon()
     }
 
-    private fun addFloatingWidgetView() {
+    private fun addFloatingWidgetIcon() {
         val inflater = getSystemService(LAYOUT_INFLATER_SERVICE) as LayoutInflater
-        floatingView = inflater.inflate(R.layout.floating_widget_layout, null)
+        // Đảm bảo sử dụng đúng layout chỉ có icon ngôi sao
+        floatingView = inflater.inflate(R.layout.floating_widget_icon_layout, null)
+        val btnStar = floatingView!!.findViewById<ImageView>(R.id.btnStar)
 
         val layoutFlag = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
             WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
@@ -45,41 +49,40 @@ class FloatingWidgetService : Service() {
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
             PixelFormat.TRANSLUCENT
         )
-
         params!!.gravity = Gravity.TOP or Gravity.START
-        params!!.x = 0
-        params!!.y = 100
+        params!!.x = 30
+        params!!.y = 120
 
         windowManager!!.addView(floatingView, params)
 
-        val ivIcon = floatingView!!.findViewById<ImageView>(R.id.btnStar)
-        ivIcon.setOnClickListener {
-            // Khi nhấn vào icon, gửi broadcast để mở FloatingContentService
+        btnStar.setOnClickListener {
+            // Khi nhấn vào icon, bật/tắt FloatingContentService
             val intent = Intent(this, FloatingContentService::class.java)
-            if (!FloatingContentService.isRunning) {
-                startService(intent)
-            } else {
+            if (FloatingContentService.isRunning) {
                 stopService(intent)
+            } else {
+                startService(intent)
             }
         }
 
         // Thêm OnTouchListener để di chuyển view
-        floatingView!!.setOnTouchListener(View.OnTouchListener { view, event ->
+        floatingView!!.setOnTouchListener(View.OnTouchListener { _, event ->
             when (event.action) {
                 MotionEvent.ACTION_DOWN -> {
-                    xDelta = params!!.x - event.rawX.toInt()
-                    yDelta = params!!.y - event.rawY.toInt()
-                    return@OnTouchListener true
+                    initialX = params!!.x
+                    initialY = params!!.y
+                    initialTouchX = event.rawX
+                    initialTouchY = event.rawY
+                    true
                 }
-
                 MotionEvent.ACTION_MOVE -> {
-                    params!!.x = event.rawX.toInt() + xDelta
-                    params!!.y = event.rawY.toInt() + yDelta
+                    params!!.x = initialX + (event.rawX - initialTouchX).toInt()
+                    params!!.y = initialY + (event.rawY - initialTouchY).toInt()
                     windowManager!!.updateViewLayout(floatingView, params)
-                    return@OnTouchListener true
+                    true
                 }
+                else -> false
             }
-            false
         })
     }
 
