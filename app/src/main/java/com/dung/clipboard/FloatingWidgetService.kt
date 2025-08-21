@@ -52,7 +52,7 @@ class FloatingWidgetService : Service() {
 
         windowManager!!.addView(floatingView, params)
 
-        val ivIcon = floatingView!!.findViewById<ImageView>(R.id.ivIcon)
+        val ivIcon = floatingView!!.findViewById<ImageView>(R.id.btnStar)
         ivIcon.setOnClickListener {
             // Khi nhấn vào icon, gửi broadcast để mở FloatingContentService
             val intent = Intent(this, FloatingContentService::class.java)
