@@ -21,7 +21,7 @@ class ClipboardMonitor(private val context: Context) : ClipboardManager.OnPrimar
     override fun onPrimaryClipChanged() {
         val clip = cm.primaryClip ?: return
         if (!clip.description.hasMimeType(ClipDescription.MIMETYPE_TEXT_PLAIN) &&
-            !clip.description.hasMimeType(ClipDescription.MIMETYPE_TEXT_HTML)) return
+            !clip.description.hasMIMETYPE(ClipDescription.MIMETYPE_TEXT_HTML)) return
 
         val text = clip.getItemAt(0)?.coerceToText(context)?.toString()?.trim().orEmpty()
         if (text.isBlank()) return
