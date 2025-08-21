@@ -7,8 +7,6 @@ import android.os.Build
 import android.os.IBinder
 import android.view.*
 import android.widget.ImageView
-import android.widget.Toast
-import android.widget.LinearLayout
 
 class FloatingWidgetService : Service() {
 
@@ -21,17 +19,19 @@ class FloatingWidgetService : Service() {
     private var floatingView: View? = null
     private var params: WindowManager.LayoutParams? = null
 
+    private var xDelta = 0
+    private var yDelta = 0
+
     override fun onCreate() {
         super.onCreate()
         isRunning = true
         windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
-        addFloatingWidgetIcon()
+        addFloatingWidgetView()
     }
 
-    private fun addFloatingWidgetIcon() {
+    private fun addFloatingWidgetView() {
         val inflater = getSystemService(LAYOUT_INFLATER_SERVICE) as LayoutInflater
-        floatingView = inflater.inflate(R.layout.floating_widget_icon_layout, null)
-        val btnStar = floatingView!!.findViewById<ImageView>(R.id.btnStar)
+        floatingView = inflater.inflate(R.layout.floating_widget_layout, null)
 
         val layoutFlag = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
             WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
@@ -45,44 +45,42 @@ class FloatingWidgetService : Service() {
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
             PixelFormat.TRANSLUCENT
         )
+
         params!!.gravity = Gravity.TOP or Gravity.START
-        params!!.x = 30
-        params!!.y = 120
+        params!!.x = 0
+        params!!.y = 100
 
         windowManager!!.addView(floatingView, params)
 
-        btnStar.setOnClickListener {
-            // Khi nhấn vào icon, bật/tắt FloatingContentService
-            if (FloatingContentService.isRunning) {
-                stopService(Intent(this, FloatingContentService::class.java))
+        val ivIcon = floatingView!!.findViewById<ImageView>(R.id.ivIcon)
+        ivIcon.setOnClickListener {
+            // Khi nhấn vào icon, gửi broadcast để mở FloatingContentService
+            val intent = Intent(this, FloatingContentService::class.java)
+            if (!FloatingContentService.isRunning) {
+                startService(intent)
             } else {
-                startService(Intent(this, FloatingContentService::class.java))
+                stopService(intent)
             }
         }
-        
-        // Drag to move
-        var initialX = 0
-        var initialY = 0
-        var touchX = 0f
-        var touchY = 0f
-        floatingView!!.setOnTouchListener { _, event ->
+
+        // Thêm OnTouchListener để di chuyển view
+        floatingView!!.setOnTouchListener(View.OnTouchListener { view, event ->
             when (event.action) {
                 MotionEvent.ACTION_DOWN -> {
-                    initialX = params!!.x
-                    initialY = params!!.y
-                    touchX = event.rawX
-                    touchY = event.rawY
-                    true
+                    xDelta = params!!.x - event.rawX.toInt()
+                    yDelta = params!!.y - event.rawY.toInt()
+                    return@OnTouchListener true
                 }
+
                 MotionEvent.ACTION_MOVE -> {
-                    params!!.x = initialX + (event.rawX - touchX).toInt()
-                    params!!.y = initialY + (event.rawY - touchY).toInt()
-                    try { windowManager!!.updateViewLayout(floatingView, params) } catch (_: Exception) {}
-                    true
+                    params!!.x = event.rawX.toInt() + xDelta
+                    params!!.y = event.rawY.toInt() + yDelta
+                    windowManager!!.updateViewLayout(floatingView, params)
+                    return@OnTouchListener true
                 }
-                else -> false
             }
-        }
+            false
+        })
     }
 
     override fun onDestroy() {
