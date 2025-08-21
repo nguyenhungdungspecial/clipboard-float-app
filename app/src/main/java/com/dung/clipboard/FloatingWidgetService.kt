@@ -65,24 +65,25 @@ class FloatingWidgetService : Service() {
             }
         }
 
-        // Thêm OnTouchListener để di chuyển view
-        floatingView!!.setOnTouchListener(View.OnTouchListener { _, event ->
+        // Thêm OnTouchListener để di chuyển view.
+        // **Lắng nghe trên floatingView (View gốc) chứ không phải btnStar**
+        floatingView!!.setOnTouchListener(View.OnTouchListener { view, event ->
             when (event.action) {
                 MotionEvent.ACTION_DOWN -> {
                     initialX = params!!.x
                     initialY = params!!.y
                     initialTouchX = event.rawX
                     initialTouchY = event.rawY
-                    true
+                    return@OnTouchListener true
                 }
                 MotionEvent.ACTION_MOVE -> {
                     params!!.x = initialX + (event.rawX - initialTouchX).toInt()
                     params!!.y = initialY + (event.rawY - initialTouchY).toInt()
                     windowManager!!.updateViewLayout(floatingView, params)
-                    true
+                    return@OnTouchListener true
                 }
-                else -> false
             }
+            false
         })
     }
 
