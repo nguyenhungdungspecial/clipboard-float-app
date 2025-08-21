@@ -23,6 +23,7 @@ class FloatingWidgetService : Service() {
     private var initialY = 0
     private var initialTouchX = 0f
     private var initialTouchY = 0f
+    private var isClick = true // Biến cờ để phân biệt sự kiện kéo và nhấn
 
     override fun onCreate() {
         super.onCreate()
@@ -33,7 +34,6 @@ class FloatingWidgetService : Service() {
 
     private fun addFloatingWidgetIcon() {
         val inflater = getSystemService(LAYOUT_INFLATER_SERVICE) as LayoutInflater
-        // Đảm bảo sử dụng đúng layout chỉ có icon ngôi sao
         floatingView = inflater.inflate(R.layout.floating_widget_icon_layout, null)
         val btnStar = floatingView!!.findViewById<ImageView>(R.id.btnStar)
 
@@ -55,18 +55,7 @@ class FloatingWidgetService : Service() {
 
         windowManager!!.addView(floatingView, params)
 
-        btnStar.setOnClickListener {
-            // Khi nhấn vào icon, bật/tắt FloatingContentService
-            val intent = Intent(this, FloatingContentService::class.java)
-            if (FloatingContentService.isRunning) {
-                stopService(intent)
-            } else {
-                startService(intent)
-            }
-        }
-
-        // Thêm OnTouchListener để di chuyển view.
-        // **Lắng nghe trên floatingView (View gốc) chứ không phải btnStar**
+        // **Sửa đổi logic OnTouchListener để xử lý cả nhấn và kéo**
         floatingView!!.setOnTouchListener(View.OnTouchListener { view, event ->
             when (event.action) {
                 MotionEvent.ACTION_DOWN -> {
@@ -74,12 +63,29 @@ class FloatingWidgetService : Service() {
                     initialY = params!!.y
                     initialTouchX = event.rawX
                     initialTouchY = event.rawY
+                    isClick = true // Reset cờ nhấn
                     return@OnTouchListener true
                 }
                 MotionEvent.ACTION_MOVE -> {
+                    // Nếu di chuyển đủ xa, coi là kéo chứ không phải nhấn
+                    if (Math.abs(event.rawX - initialTouchX) > 10 || Math.abs(event.rawY - initialTouchY) > 10) {
+                        isClick = false
+                    }
                     params!!.x = initialX + (event.rawX - initialTouchX).toInt()
                     params!!.y = initialY + (event.rawY - initialTouchY).toInt()
                     windowManager!!.updateViewLayout(floatingView, params)
+                    return@OnTouchListener true
+                }
+                MotionEvent.ACTION_UP -> {
+                    // Nếu là sự kiện nhấn, kích hoạt hành động
+                    if (isClick) {
+                        val intent = Intent(this, FloatingContentService::class.java)
+                        if (FloatingContentService.isRunning) {
+                            stopService(intent)
+                        } else {
+                            startService(intent)
+                        }
+                    }
                     return@OnTouchListener true
                 }
             }
