@@ -7,6 +7,8 @@ import android.widget.Button
 import android.widget.ListView
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
+import android.net.Uri
+import android.os.Build
 
 class MainActivity : AppCompatActivity() {
 
@@ -39,12 +41,12 @@ class MainActivity : AppCompatActivity() {
         tvStatus = findViewById(R.id.tvStatus)
         lvCopied = findViewById(R.id.lvCopied)
         lvPinned = findViewById(R.id.lvPinned)
-        
+
         // Khôi phục ánh xạ đúng với layout gốc của bạn
         btnRequestAccessibility = findViewById(R.id.btnRequestAccessibility)
         btnToggleFloat = findViewById(R.id.btnToggleFloat)
         btnClear = findViewById(R.id.btnClear)
-        
+
         // Cài đặt text cho các nút
         btnRequestAccessibility.text = "MỞ CÀI ĐẶT TRỢ NĂNG"
         btnToggleFloat.text = "BẬT/TẮT ICON NỔI"
@@ -69,6 +71,8 @@ class MainActivity : AppCompatActivity() {
         super.onResume()
         isVisible = true
         refreshList()
+        updateAccessibilityStatus()
+        requestOverlayPermission() // Thêm lời gọi này
     }
 
     override fun onPause() {
@@ -85,7 +89,6 @@ class MainActivity : AppCompatActivity() {
         val items = ClipboardDataManager.getCopiedList(this)
         val adapter = android.widget.ArrayAdapter(this, android.R.layout.simple_list_item_1, items)
         lvCopied.adapter = adapter
-
         val pinned = ClipboardDataManager.getPinnedList(this)
         val padapter = android.widget.ArrayAdapter(this, android.R.layout.simple_list_item_1, pinned)
         lvPinned.adapter = padapter
@@ -97,6 +100,14 @@ class MainActivity : AppCompatActivity() {
         val intent = Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
         intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
         startActivity(intent)
+    }
+    
+    // Thêm hàm này để yêu cầu quyền vẽ lên các ứng dụng khác
+    private fun requestOverlayPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.canDrawOverlays(this)) {
+            val intent = Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:$packageName"))
+            startActivityForResult(intent, 1234)
+        }
     }
 
     private fun updateAccessibilityStatus() {

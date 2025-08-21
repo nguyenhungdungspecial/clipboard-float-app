@@ -4,6 +4,7 @@ import android.content.ClipDescription
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
+import com.dung.clipboard.MainActivity
 
 class ClipboardMonitor(private val context: Context) : ClipboardManager.OnPrimaryClipChangedListener {
 
@@ -25,9 +26,8 @@ class ClipboardMonitor(private val context: Context) : ClipboardManager.OnPrimar
         val text = clip.getItemAt(0)?.coerceToText(context)?.toString()?.trim().orEmpty()
         if (text.isBlank()) return
 
-        // Gửi broadcast để cập nhật FloatingWidgetService
-        val broadcastIntent = Intent("com.dung.clipboard.CLIPBOARD_UPDATED_BROADCAST")
-        broadcastIntent.putExtra("clipboard_text", text)
+        // Gửi broadcast để cập nhật cả MainActivity và FloatingContentService
+        val broadcastIntent = Intent(MainActivity.ACTION_CLIPBOARD_UPDATED)
         context.sendBroadcast(broadcastIntent)
     }
 }

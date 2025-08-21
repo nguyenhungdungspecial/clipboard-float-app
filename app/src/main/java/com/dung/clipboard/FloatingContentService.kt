@@ -14,6 +14,8 @@ import android.widget.ListView
 import android.widget.LinearLayout
 import android.widget.ArrayAdapter
 import android.widget.AdapterView
+import android.content.BroadcastReceiver
+import android.content.IntentFilter
 
 class FloatingContentService : Service() {
 
@@ -28,12 +30,23 @@ class FloatingContentService : Service() {
     private lateinit var lvCopied: ListView
     private lateinit var lvPinned: ListView
 
+    private val clipboardUpdateReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            // Khi nhận được broadcast, cập nhật danh sách
+            refreshLists()
+        }
+    }
+
     override fun onCreate() {
         super.onCreate()
         isRunning = true
         windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
         addFloatingWidgetContent()
         refreshLists()
+        
+        // Đăng ký receiver để lắng nghe sự kiện cập nhật clipboard
+        val filter = IntentFilter(MainActivity.ACTION_CLIPBOARD_UPDATED)
+        registerReceiver(clipboardUpdateReceiver, filter)
     }
 
     private fun addFloatingWidgetContent() {
@@ -56,7 +69,7 @@ class FloatingContentService : Service() {
             PixelFormat.TRANSLUCENT
         )
         params!!.gravity = Gravity.CENTER
-        
+
         windowManager!!.addView(floatingView, params)
 
         // Add a click listener for the close button
@@ -94,6 +107,7 @@ class FloatingContentService : Service() {
     override fun onDestroy() {
         isRunning = false
         if (floatingView != null) windowManager?.removeView(floatingView)
+        unregisterReceiver(clipboardUpdateReceiver)
         super.onDestroy()
     }
 
