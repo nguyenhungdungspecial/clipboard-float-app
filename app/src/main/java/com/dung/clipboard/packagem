@@ -1,0 +1,94 @@
+
+import android.content.Context
+
+/**
+ * Quản lý dữ liệu clipboard, bao gồm cả lưu trữ tạm thời và vĩnh viễn
+ */
+object ClipboardDataManager {
+    private const val PREF_NAME = "clipboard_data"
+    private const val KEY_COPIED = "copied_list"
+    private const val KEY_PINNED = "pinned_list"
+    private const val SEPARATOR = "\u0001"
+
+    private val inMemoryCopied = mutableListOf<String>()
+    private val inMemoryPinned = mutableListOf<String>()
+
+    fun addItem(ctx: Context, text: String, max: 
+        Int = 200) { if (text.isBlank()) return 
+        synchronized(this) {
+            // Kiểm tra trùng lặp với item mới 
+            // nhất
+            if (inMemoryCopied.isNotEmpty() && 
+            inMemoryCopied[0] == text) return 
+            inMemoryCopied.add(0, text)
+            // Giới hạn số lượng item
+            while (inMemoryCopied.size > max) { 
+                inMemoryCopied.removeLast()
+            }
+            saveToPrefs(ctx)
+        }
+    }
+    fun getCopiedList(ctx: Context): 
+    List<String> {
+        if (inMemoryCopied.isEmpty()) { 
+            loadFromPrefs(ctx)
+        }
+        return inMemoryCopied.toList()
+    }
+    fun getPinnedList(ctx: Context): 
+    List<String> {
+        if (inMemoryPinned.isEmpty()) { 
+            loadFromPrefs(ctx)
+        }
+        return inMemoryPinned.toList()
+    }
+    fun pinItem(ctx: Context, text: String) { if 
+        (!inMemoryPinned.contains(text)) {
+            inMemoryPinned.add(0, text) 
+            saveToPrefs(ctx)
+        }
+    }
+    fun unpinItem(ctx: Context, text: String) { 
+        if (inMemoryPinned.remove(text)) {
+            saveToPrefs(ctx)
+        }
+    }
+    fun clearAll(ctx: Context) { 
+        synchronized(this) {
+            inMemoryCopied.clear() 
+            inMemoryPinned.clear() 
+            saveToPrefs(ctx)
+        }
+    }
+    private fun saveToPrefs(ctx: Context) { val 
+        shared = 
+        ctx.getSharedPreferences(PREF_NAME, 
+        Context.MODE_PRIVATE) val copiedJoined = 
+        inMemoryCopied.joinToString(SEPARATOR) 
+        val pinnedJoined = 
+        inMemoryPinned.joinToString(SEPARATOR) 
+        shared.edit()
+            .putString(KEY_COPIED, copiedJoined) 
+            .putString(KEY_PINNED, pinnedJoined) 
+            .apply()
+    }
+    private fun loadFromPrefs(ctx: Context) { 
+        val shared = 
+        ctx.getSharedPreferences(PREF_NAME, 
+        Context.MODE_PRIVATE) val rawCopied = 
+        shared.getString(KEY_COPIED, "") ?: "" 
+        val rawPinned = 
+        shared.getString(KEY_PINNED, "") ?: "" 
+        inMemoryCopied.clear() 
+        inMemoryPinned.clear() if 
+        (rawCopied.isNotEmpty()) {
+            inMemoryCopied.addAll(rawCopied.split(SEPARATOR).filter 
+            { it.isNotEmpty() })
+        }
+        if (rawPinned.isNotEmpty()) { 
+            inMemoryPinned.addAll(rawPinned.split(SEPARATOR).filter 
+            { it.isNotEmpty() })
+        }
+    }
+}
+
