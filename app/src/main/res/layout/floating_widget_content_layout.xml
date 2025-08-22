@@ -3,7 +3,7 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
-    android:background="#DDFFFFFF"
+    android:background="@drawable/rounded_border_background"
     android:padding="8dp">
 
     <LinearLayout
@@ -68,6 +68,7 @@
         android:layout_height="wrap_content"
         android:layout_gravity="center_horizontal"
         android:text="Đóng"
-        android:layout_marginTop="8dp"/>
+        android:layout_marginTop="8dp"
+        android:background="@drawable/rounded_button_background"/>
 </LinearLayout>
 
