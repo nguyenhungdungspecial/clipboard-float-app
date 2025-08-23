@@ -29,8 +29,8 @@ class ClipboardMonitor(private val context: Context) : ClipboardManager.OnPrimar
 
         ClipboardDataManager.addItem(context, text)
 
-        // Gửi broadcast để cập nhật cả MainActivity và FloatingContentService
-        val broadcastIntent = Intent(MainActivity.ACTION_CLIPBOARD_UPDATED)
+        // Gửi broadcast với chuỗi hành động đã sửa đổi
+        val broadcastIntent = Intent("com.dung.clipboard.CLIPBOARD_UPDATED")
         context.sendBroadcast(broadcastIntent)
     }
 }
