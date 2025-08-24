@@ -44,7 +44,6 @@ object ClipboardDataManager {
     }
 
     fun getCopiedList(ctx: Context): List<String> {
-        // Always load from prefs on each call to ensure fresh data
         loadFromPrefs(ctx)
         Log.d(TAG, "Returning copied list with size: ${inMemoryCopied.size}")
         return inMemoryCopied.toList()
@@ -91,7 +90,7 @@ object ClipboardDataManager {
     private fun loadFromPrefs(ctx: Context) {
         val shared = ctx.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
         val rawCopied = shared.getString(KEY_COPIED, "") ?: ""
-        val rawPinned = shared = shared.getString(KEY_PINNED, "") ?: ""
+        val rawPinned = shared.getString(KEY_PINNED, "") ?: ""
 
         inMemoryCopied.clear()
         inMemoryPinned.clear()
