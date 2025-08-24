@@ -1,45 +1,58 @@
 package com.dung.clipboard
 
 import android.content.Context
+import android.util.Log
 
-/**
- * Quản lý dữ liệu clipboard, bao gồm cả lưu trữ tạm thời và vĩnh viễn
- */
 object ClipboardDataManager {
     private const val PREF_NAME = "clipboard_data"
     private const val KEY_COPIED = "copied_list"
     private const val KEY_PINNED = "pinned_list"
     private const val SEPARATOR = "\u0001"
+    private const val TAG = "ClipboardDataManager"
 
     private val inMemoryCopied = mutableListOf<String>()
     private val inMemoryPinned = mutableListOf<String>()
 
     fun addItem(ctx: Context, text: String, max: Int = 200) {
-        if (text.isBlank()) return
+        if (text.isBlank()) {
+            Log.d(TAG, "Attempted to add blank text. Ignored.")
+            return
+        }
+
         synchronized(this) {
-            // Kiểm tra trùng lặp với item mới nhất
-            if (inMemoryCopied.isNotEmpty() && inMemoryCopied[0] == text) return
+            // Check for duplicate at the top
+            if (inMemoryCopied.isNotEmpty() && inMemoryCopied[0] == text) {
+                Log.d(TAG, "Item already exists. Not adding.")
+                return
+            }
+
+            // Remove existing item to avoid duplicates and re-add to top
+            if (inMemoryCopied.contains(text)) {
+                inMemoryCopied.remove(text)
+                Log.d(TAG, "Duplicate item found and removed.")
+            }
 
             inMemoryCopied.add(0, text)
-            // Giới hạn số lượng item
-            while (inMemoryCopied.size > max) {
+
+            // Limit list size
+            if (inMemoryCopied.size > max) {
                 inMemoryCopied.removeLast()
             }
             saveToPrefs(ctx)
+            Log.d(TAG, "Item added and saved: $text")
         }
     }
 
     fun getCopiedList(ctx: Context): List<String> {
-        if (inMemoryCopied.isEmpty()) {
-            loadFromPrefs(ctx)
-        }
+        // Always load from prefs on each call to ensure fresh data
+        loadFromPrefs(ctx)
+        Log.d(TAG, "Returning copied list with size: ${inMemoryCopied.size}")
         return inMemoryCopied.toList()
     }
 
     fun getPinnedList(ctx: Context): List<String> {
-        if (inMemoryPinned.isEmpty()) {
-            loadFromPrefs(ctx)
-        }
+        loadFromPrefs(ctx)
+        Log.d(TAG, "Returning pinned list with size: ${inMemoryPinned.size}")
         return inMemoryPinned.toList()
     }
 
@@ -72,12 +85,13 @@ object ClipboardDataManager {
             .putString(KEY_COPIED, copiedJoined)
             .putString(KEY_PINNED, pinnedJoined)
             .apply()
+        Log.d(TAG, "Data saved to SharedPreferences. Copied size: ${inMemoryCopied.size}")
     }
 
     private fun loadFromPrefs(ctx: Context) {
         val shared = ctx.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
         val rawCopied = shared.getString(KEY_COPIED, "") ?: ""
-        val rawPinned = shared.getString(KEY_PINNED, "") ?: ""
+        val rawPinned = shared = shared.getString(KEY_PINNED, "") ?: ""
 
         inMemoryCopied.clear()
         inMemoryPinned.clear()
@@ -88,6 +102,7 @@ object ClipboardDataManager {
         if (rawPinned.isNotEmpty()) {
             inMemoryPinned.addAll(rawPinned.split(SEPARATOR).filter { it.isNotEmpty() })
         }
+        Log.d(TAG, "Data loaded from SharedPreferences. Copied size: ${inMemoryCopied.size}")
     }
 }
 
