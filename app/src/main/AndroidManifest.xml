@@ -30,10 +30,6 @@
         <service
             android:name=".FloatingWidgetService"
             android:exported="false"/>
-            
-        <service
-            android:name=".FloatingContentService"
-            android:exported="false"/>
 
         <service
             android:name=".MyAccessibilityService"
