@@ -141,4 +141,3 @@ class ClipboardActivity : AppCompatActivity() {
         tvStatus.text = if (items.isEmpty()) "Clipboard rỗng" else "Có ${items.size} mục"
     }
 }
-

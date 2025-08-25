@@ -44,7 +44,7 @@ class ClipboardService : Service() {
             nm.createNotificationChannel(channel)
         }
     }
-    
+
     override fun onDestroy() {
         clipboardMonitor.stop()
         super.onDestroy()
@@ -52,4 +52,3 @@ class ClipboardService : Service() {
 
     override fun onBind(intent: Intent?): IBinder? = null
 }
-
