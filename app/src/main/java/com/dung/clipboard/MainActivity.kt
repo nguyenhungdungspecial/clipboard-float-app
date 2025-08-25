@@ -101,7 +101,7 @@ class MainActivity : AppCompatActivity() {
         intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
         startActivity(intent)
     }
-    
+
     // Thêm hàm này để yêu cầu quyền vẽ lên các ứng dụng khác
     private fun requestOverlayPermission() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.canDrawOverlays(this)) {
@@ -133,4 +133,3 @@ class MainActivity : AppCompatActivity() {
         refreshList()
     }
 }
-
