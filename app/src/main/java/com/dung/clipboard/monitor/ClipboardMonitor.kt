@@ -5,7 +5,6 @@ import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import com.dung.clipboard.ClipboardDataManager
-import com.dung.clipboard.MainActivity
 
 class ClipboardMonitor(private val context: Context) : ClipboardManager.OnPrimaryClipChangedListener {
 
@@ -29,7 +28,6 @@ class ClipboardMonitor(private val context: Context) : ClipboardManager.OnPrimar
 
         ClipboardDataManager.addItem(context, text)
 
-        // Gửi broadcast với chuỗi hành động đã sửa đổi
         val broadcastIntent = Intent("com.dung.clipboard.CLIPBOARD_UPDATED")
         context.sendBroadcast(broadcastIntent)
     }

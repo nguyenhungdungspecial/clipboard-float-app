@@ -44,7 +44,6 @@ class FloatingWidgetService : Service() {
         addFloatingWidgetContent()
         refreshLists()
 
-        // Đăng ký receiver với chuỗi hành động đã sửa đổi
         val filter = IntentFilter("com.dung.clipboard.CLIPBOARD_UPDATED")
         registerReceiver(clipboardUpdateReceiver, filter)
     }

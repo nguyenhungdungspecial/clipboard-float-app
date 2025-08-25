@@ -20,13 +20,11 @@ object ClipboardDataManager {
         }
 
         synchronized(this) {
-            // Check for duplicate at the top
             if (inMemoryCopied.isNotEmpty() && inMemoryCopied[0] == text) {
                 Log.d(TAG, "Item already exists. Not adding.")
                 return
             }
 
-            // Remove existing item to avoid duplicates and re-add to top
             if (inMemoryCopied.contains(text)) {
                 inMemoryCopied.remove(text)
                 Log.d(TAG, "Duplicate item found and removed.")
@@ -34,7 +32,6 @@ object ClipboardDataManager {
 
             inMemoryCopied.add(0, text)
 
-            // Limit list size
             if (inMemoryCopied.size > max) {
                 inMemoryCopied.removeLast()
             }
