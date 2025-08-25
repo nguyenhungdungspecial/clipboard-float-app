@@ -2,3 +2,4 @@
 2. git add . && git commit -m "Replace with new clipboard float app"
 3. git push origin main
 4. Check Actions -> Android Build -> artifact app-debug.apk
+
