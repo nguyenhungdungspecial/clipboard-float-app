@@ -20,11 +20,13 @@ object ClipboardDataManager {
         }
 
         synchronized(this) {
+            // Kiểm tra trùng lặp với item mới nhất
             if (inMemoryCopied.isNotEmpty() && inMemoryCopied[0] == text) {
                 Log.d(TAG, "Item already exists. Not adding.")
                 return
             }
 
+            // Xóa item đã tồn tại để tránh trùng lặp và thêm lại vào đầu danh sách
             if (inMemoryCopied.contains(text)) {
                 inMemoryCopied.remove(text)
                 Log.d(TAG, "Duplicate item found and removed.")
@@ -32,6 +34,7 @@ object ClipboardDataManager {
 
             inMemoryCopied.add(0, text)
 
+            // Giới hạn số lượng item
             if (inMemoryCopied.size > max) {
                 inMemoryCopied.removeLast()
             }
@@ -41,6 +44,7 @@ object ClipboardDataManager {
     }
 
     fun getCopiedList(ctx: Context): List<String> {
+        // Luôn tải từ prefs trên mỗi lần gọi để đảm bảo dữ liệu mới
         loadFromPrefs(ctx)
         Log.d(TAG, "Returning copied list with size: ${inMemoryCopied.size}")
         return inMemoryCopied.toList()
